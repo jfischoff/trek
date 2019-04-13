@@ -47,11 +47,13 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
+    - -Werror
     dependencies:
     - trek
 
 tests:
-  trek-test:
+  test:
     main:                Spec.hs
     source-dirs:         test
     ghc-options:
@@ -59,4 +61,6 @@ tests:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - hspec
+    - hspec-discover
     - trek
