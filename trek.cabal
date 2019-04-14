@@ -2,7 +2,7 @@
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: ea4b80f6b99e32ee26a526a8521d285afb2cd9ab5ee30b2d378209f4f2fe27f2
+-- hash: d77973ef6dffa8c9fff08f13922e4ed81c61910aedb3632d6281a096635fe0d0
 
 name:           trek
 version:        0.1.0.0
@@ -35,7 +35,7 @@ library
       Paths_trek
   hs-source-dirs:
       src
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
   build-depends:
       base >=4.7 && <5
     , bytestring
@@ -55,7 +55,7 @@ executable trek-exe
       Paths_trek
   hs-source-dirs:
       app
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
@@ -81,13 +81,14 @@ test-suite test
       Paths_trek
   hs-source-dirs:
       test
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
     , hspec
     , hspec-discover
+    , hspec-expectations-lifted
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts

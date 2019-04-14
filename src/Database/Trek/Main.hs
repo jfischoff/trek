@@ -6,6 +6,19 @@ import Database.Trek.Dump
 
 import Data.Text (Text)
 import Data.Foldable
+import Data.Pool
+import qualified Database.PostgreSQL.Simple as PS
+import Database.PostgreSQL.Transact
+import qualified Data.List.NonEmpty as NonEmpty
+
+data Config = Config
+  { cMigrationDirectory :: FilePath
+  , cSchemaFilePath :: FilePath
+  , cPool :: Pool PS.Connection
+  , cRollbacker :: PointInTime -> IO ()
+  , cBackerUpper :: Maybe (IO PointInTime)
+  , cDropDb :: DB ()
+  }
 
 qaModeMigrationsToApply
   :: Config
@@ -17,8 +30,8 @@ qaModeMigrationsToApply Config {..} _mDump allMigrations appliedMigrations = do
   -- TODO find all of the hash conflicts
   case findAllHashConflicts allMigrations appliedMigrations of
     [] -> pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $ map fst appliedMigrations
-    xs -> do
-      cRollbacker =<< runDb cPool (oldestMigrationPitb xs)
+    x:xs -> do
+      cRollbacker =<< runDb cPool (oldestMigrationPitb $ x NonEmpty.:| xs)
       newAppliedVersions <- runDb cPool getAppliedVersions
       pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $
         newAppliedVersions
@@ -127,7 +140,10 @@ runMigration config@Config {..} mode = do
 
   unappliedMigrations <- mapM loadMigration unappliedMigrationFilePaths
 
-  runDb cPool $ mapM_ applyMigration unappliedMigrations
+  pitb <- sequenceA cBackerUpper
+
+  for_ (NonEmpty.nonEmpty unappliedMigrations) $
+    runDb cPool . applyMigrationGroup pitb
 
 data RunConfig = RunConfig
 

@@ -23,6 +23,7 @@ default-extensions:
 - QuasiQuotes
 - RecordWildCards
 - LambdaCase
+- RankNTypes
 
 dependencies:
 - base >= 4.7 && < 5
@@ -64,3 +65,5 @@ tests:
     - hspec
     - hspec-discover
     - trek
+    - tmp-postgres
+    - hspec-expectations-lifted

@@ -7,10 +7,31 @@ import qualified Database.PostgreSQL.Simple as PS
 import Database.PostgreSQL.Transact
 import Data.Pool
 import Control.Monad (void)
+import Data.Time
+import Data.Text (Text)
+import Data.ByteString (ByteString)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Int
 
 runDb :: Pool PS.Connection -> DB a -> IO a
 runDb = undefined
 
+newtype Runner = Runner { unRunner :: forall a. DB a -> IO a }
+
+newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
+
+data DevMigration = DevMigration
+  { dmVersion :: Version
+  , dmName :: Text
+  , dmCreate :: UTCTime
+  , dmHash :: Maybe Hash
+  }
+
+data ProdMigration = ProdMigration
+  { pmVersion :: Version
+  , pmName :: Text
+  , pmCreate :: UTCTime
+  }
 
 -- Only exists in dev mode
 revertSaga :: PS.Query
@@ -30,8 +51,6 @@ CREATE TABLE applications
 , before int REFERENCES applications
 );
   |]
-
-
 
 migrationProduction :: PS.Query
 migrationProduction = [sql|
@@ -60,10 +79,13 @@ setupDev = void $ execute_ migrationDev
 getAppliedVersions :: DB [Version]
 getAppliedVersions = undefined
 
-applyMigration :: Migration -> DB ()
+applyMigrationGroup :: Maybe PointInTime -> NonEmpty Migration -> DB ApplicationId
+applyMigrationGroup = undefined
+
+applyMigration :: ApplicationId -> Migration -> DB ()
 applyMigration = undefined
 
-oldestMigrationPitb :: [Version] -> DB PointInTime
+oldestMigrationPitb :: NonEmpty Version -> DB PointInTime
 oldestMigrationPitb = undefined
 
 getAppliedMigrations :: DB [(Version, Maybe Hash)]
