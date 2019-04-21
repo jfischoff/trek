@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5c4f8d73e2d72e3bf754b0f5e546bbff8d017c4a31eb5c3f848f06436f1e8c5f
+-- hash: 372138a84033bd5b8825e6b999b58822debb730eb1c7a75243bf109f739182c6
 
 name:           trek
 version:        0.1.0.0
@@ -42,6 +42,7 @@ library
     , bytestring
     , cryptonite
     , exceptions
+    , interpolatedstring-perl6
     , memory
     , pg-transact
     , postgresql-simple
@@ -67,6 +68,7 @@ executable trek-exe
     , bytestring
     , cryptonite
     , exceptions
+    , interpolatedstring-perl6
     , memory
     , pg-transact
     , postgresql-simple
@@ -101,6 +103,7 @@ test-suite test
     , hspec-discover
     , hspec-expectations-lifted
     , hspec-expectations-monadthrow
+    , interpolatedstring-perl6
     , memory
     , pg-transact
     , postgresql-simple

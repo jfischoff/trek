@@ -46,6 +46,7 @@ dependencies:
 - time-qq
 - cryptonite
 - memory
+- interpolatedstring-perl6
 
 library:
   source-dirs: src

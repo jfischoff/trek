@@ -15,6 +15,10 @@ import Data.List (sort)
 import Data.Time.QQ
 import Data.Time
 import Control.Monad.IO.Class
+import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty)
+import Text.InterpolatedString.Perl6
+import Data.Foldable
 
 main :: IO ()
 main = hspec spec
@@ -42,45 +46,104 @@ stopDB (c, x) = void $ Psql.close c >> Temp.stop x
 withDB :: DB a -> (Psql.Connection, Temp.DB) -> IO a
 withDB x (c, _) = runDBTSerializable x c
 
+verifyTableExists :: String -> DB Bool
+verifyTableExists tableName = Psql.fromOnly . head <$> query_ [qq|
+  SELECT EXISTS (
+  SELECT 1
+  FROM   information_schema.tables 
+  WHERE  table_schema = 'public'
+  AND    table_name = '{tableName}'
+  );
+  |]
+
+assertTableExists :: String -> DB ()
+assertTableExists tableName = verifyTableExists tableName `shouldReturn` True
+
+stuffVersion :: UTCTime
+stuffVersion = [utcIso8601| 2048-12-01 |]
+
+stuffMigration :: Migration
+stuffMigration = Migration
+  { mVersion = stuffVersion
+  , mName = "stuff"
+  , mQuery = "CREATE TABLE stuff (id SERIAL PRIMARY KEY);"
+  }
+
+thangVersion :: UTCTime
+thangVersion = [utcIso8601| 2048-12-02 |]
+
+thangMigration :: Migration
+thangMigration = Migration
+  { mVersion = thangVersion
+  , mName = "thang"
+  , mQuery = "CREATE TABLE thang (id SERIAL PRIMARY KEY);"
+  }
+
+migrationGroup :: NonEmpty Migration
+migrationGroup = stuffMigration NonEmpty.:| [thangMigration]
+
+resetMigrations :: DB ()
+resetMigrations = do
+  clearMigrations
+  void $ execute_ [sql|DROP TABLE IF EXISTS stuff ; DROP TABLE IF EXISTS thang; |]
+
 sharedSpecs :: Mode -> SpecWith (Psql.Connection, Temp.DB)
 sharedSpecs mode = do  
   it "getAppliedMigrations returns empty if no migrations" $ withDB $
       getAppliedMigrations `shouldReturn` []
 
   it "applyMigration/getAppliedVersions returns the version applied" $ withDB $ do
-    let theVersion = [utcIso8601| 2048-12-01 |]
-      
-        initial = Migration
-          { mVersion = [utcIso8601| 2048-12-01 |]
-          , mName = "initial"
-          , mQuery = "CREATE TABLE stuff (id SERIAL PRIMARY KEY);"
-          }
-
     applicationId <- createApplication Nothing
 
-    applyMigration mode applicationId initial
+    applyMigration mode applicationId stuffMigration
 
-    getAppliedMigrations `shouldReturn` [(theVersion, if mode == Dev then Just $ hashMigration initial else Nothing)]
+    getAppliedMigrations `shouldReturn` [(stuffVersion, if mode == Dev then Just $ hashMigration stuffMigration else Nothing)]
 
-    stuffExists <- Psql.fromOnly . head <$> query_ [sql|
-      SELECT EXISTS (
-      SELECT 1
-      FROM   information_schema.tables 
-      WHERE  table_schema = 'public'
-      AND    table_name = 'stuff'
-      );
-      |]
-    
-    stuffExists `shouldBe` True
+  it "applyMigration updates the schema" $ withDB $ assertTableExists "stuff"
 
-  it "applyMigration updates the schema" $ const pending
-  it "applyMigration throws if it is already applied" $ const pending
-  it "applyMigrationGroup applies all the migrations" $ const pending
-  it "applyMigrationGroup updates the schema" $ const pending
-  it "applyMigrationGroup throws if it is already applied" $ const pending
-  it "applyMigrationGroup stores the pitb for all migrations in the group" $ const pending
-  it "oldestMigrationPitb returns only pitb one there is one version" $ const pending
-  it "oldestMigrationPitb throws if invalid version is used" $ const pending
+  it "applyMigration throws if it is already applied" $ withDB $ do
+    applicationId <- createApplication Nothing
+
+    shouldThrow (applyMigration mode applicationId stuffMigration) $ 
+      \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+
+  it "applyMigrationGroup applies all the migrations" $ withDB $ do 
+    resetMigrations
+
+    applicationId <- applyMigrationGroup mode Nothing migrationGroup
+
+    getMigrationsInApplication applicationId `shouldReturn` 
+      fmap mVersion migrationGroup
+
+  it "applyMigrationGroup updates the schema" $ withDB $ 
+    mapM_ assertTableExists ["stuff", "thang"]
+
+  it "applyMigrationGroup throws if it is already applied" $ withDB $ 
+    shouldThrow (applyMigrationGroup mode Nothing migrationGroup) $ 
+      \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+  it "applyMigrationGroup stores the pitb for all migrations in the group" $ withDB $ do
+    resetMigrations 
+
+    let thePitb = "backup-key"
+
+    applicationId <- applyMigrationGroup mode (Just thePitb) migrationGroup
+
+    forM_ (fmap mVersion migrationGroup) $ \version -> 
+      pitbToUndoMigration version `shouldReturn` thePitb
+
+  it "oldestMigrationPitb returns only pitb when there is one version" $ withDB $ do
+    resetMigrations 
+
+    let thePitb = "backup-key"
+
+    applicationId <- applyMigrationGroup mode (Just thePitb) migrationGroup
+
+    oldestMigrationPitb (fmap mVersion migrationGroup) `shouldReturn` thePitb
+
+  it "oldestMigrationPitb throws if invalid version is used" $ withDB $ 
+    shouldThrow (oldestMigrationPitb $ pure [utcIso8601| 2008-12-02 |]) $ 
+      \(e :: MigrationException) -> e == InvalidMigrationVersion [[utcIso8601| 2008-12-02 |]]
+
 
 verifyAuditLog :: DB ()
 verifyAuditLog = do
@@ -169,7 +232,7 @@ spec = describe "Db" $ do
       clearMigrations
 
     sharedSpecs Dev
-    it "applyMigration/getAppliedMigrations returns a Hash and the version" $ const pending
+      
   withTestDB $ describe "prod setup" $ do
     it "setupProd works" $ withDB $ do
       setupProd
@@ -193,7 +256,8 @@ spec = describe "Db" $ do
            ] :: [String]
 
       sort columnNames `shouldBe` sort expected
-    it "setupProd throws if applied a second time" $ const pending
+    it "setupProd throws if applied a second time" $ withDB $ 
+      shouldThrow setupProd $ \(e :: Psql.SqlError) -> e == applicationsAlreadyExists
 
     it "insertProdMigration/getProdMigrationRow roundtrips basically" $ withDB $ do
       applicationId <- createApplication Nothing
@@ -227,4 +291,3 @@ spec = describe "Db" $ do
       clearMigrations
     
     sharedSpecs Prod
-    it "applyMigration/getAppliedMigrations returns a Nothing Hash and the version" $ const pending

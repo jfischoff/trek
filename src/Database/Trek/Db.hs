@@ -16,7 +16,9 @@ import Data.Time
 import Data.Text (Text)
 import Data.ByteString (ByteString)
 import Data.List.NonEmpty (NonEmpty)
-import Data.Int
+import qualified Data.List.NonEmpty as NonEmpty
+import Control.Monad (unless)
+
 import Control.Monad.Catch
 import GHC.Generics
 
@@ -24,11 +26,6 @@ runDb :: Pool PS.Connection -> DB a -> IO a
 runDb = undefined
 
 newtype Runner = Runner { unRunner :: forall a. DB a -> IO a }
-
-newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
-  deriving stock (Show, Eq, Ord)
-  deriving newtype (FromField, ToField)
-  deriving (ToRow) via (PS.Only ApplicationId)
 
 instance FromRow ApplicationId where
   fromRow = fmap PS.fromOnly $ fromRow
@@ -175,9 +172,22 @@ getAppliedVersions = map PS.fromOnly <$> query_ [sql|
   |]
 
 applyMigrationGroup :: Mode -> Maybe PointInTime -> NonEmpty Migration -> DB ApplicationId
-applyMigrationGroup _mode mpitb _migrations = do
+applyMigrationGroup mode mpitb migrations = do
   aId <- createApplication mpitb
-  undefined
+  mapM_ (applyMigration mode aId) migrations
+  pure aId
+
+getMigrationsInApplication :: ApplicationId -> DB (NonEmpty Version)
+getMigrationsInApplication applicationId = do 
+  versions <- fmap (map PS.fromOnly) $ query [sql|
+      SELECT version 
+      FROM migrations 
+      WHERE application_id = ?
+    |] $ PS.Only applicationId
+
+  case versions of
+    [] -> throwM $ EmptyApplication applicationId
+    x : xs -> pure $ x NonEmpty.:| xs
 
 applyProdMigration :: ApplicationId -> Migration -> DB ()
 applyProdMigration applicationId migration = do 
@@ -189,13 +199,52 @@ applyDevMigration applicationId migration = do
   void $ execute_ $ PS.Query $  mQuery migration
   insertDevMigration applicationId migration
 
+versionExists :: Version -> DB Bool
+versionExists = fmap (PS.fromOnly . head) . query [sql|
+SELECT EXISTS (
+  SELECT 1 
+  FROM migrations 
+  WHERE version = ?
+)
+|] . PS.Only
+
+migrationHasBeenApplied :: Migration -> DB Bool
+migrationHasBeenApplied = versionExists . mVersion
+
 applyMigration :: Mode -> ApplicationId -> Migration -> DB ()
-applyMigration mode applicationId migration = case mode of
-  Prod -> applyProdMigration applicationId migration
-  _    -> applyDevMigration  applicationId migration
+applyMigration mode applicationId migration = do 
+  migrationHasBeenApplied migration >>= \case
+    True -> throwM $ MigrationAlreadyApplied $ mVersion migration
+    False -> pure ()
+
+  case mode of
+    Prod -> applyProdMigration applicationId migration
+    _    -> applyDevMigration  applicationId migration
+
+pitbToUndoMigration :: Version -> DB PointInTime
+pitbToUndoMigration = fmap (PS.fromOnly . head) . query [sql|
+    SELECT a.pitb 
+    FROM applications AS a
+    INNER JOIN migrations AS m ON (m.application_id = a.id)
+    WHERE m.version = ? 
+  |] . PS.Only
 
 oldestMigrationPitb :: NonEmpty Version -> DB PointInTime
-oldestMigrationPitb = undefined
+oldestMigrationPitb versions = do 
+  let versionsList = NonEmpty.toList versions
+  nonExistingVersions <- filter (not . snd) . zip versionsList <$> mapM versionExists versionsList
+
+  unless (null nonExistingVersions) $ throwM $ 
+    InvalidMigrationVersion $ map fst nonExistingVersions
+  
+  fmap (PS.fromOnly . head) $ query [sql|
+    SELECT a.pitb
+    FROM applications AS a
+    INNER JOIN migrations AS m ON (a.id = m.application_id) 
+    WHERE m.version IN ?
+    ORDER BY a.created_at ASC
+    LIMIT 1
+    |] $ PS.Only $ PS.In $ NonEmpty.toList versions
 
 migrationTableMissing :: PS.SqlError
 migrationTableMissing = PS.SqlError

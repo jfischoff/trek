@@ -16,6 +16,7 @@ import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
+import Data.Int
 
 type Version = UTCTime
 
@@ -23,9 +24,17 @@ type PointInTime = String
 
 type Hash = ByteString
 
+newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
+  deriving stock (Show, Eq, Ord)
+  deriving newtype (FromField, ToField)
+  deriving (ToRow) via (PS.Only ApplicationId)
+
 data MigrationException
   = NoMigrationTables
   | FailedToParseMigratrionFilePaths [FilePath]
+  | MigrationAlreadyApplied Version
+  | EmptyApplication ApplicationId
+  | InvalidMigrationVersion [Version]
   deriving(Show, Eq, Ord, Typeable)
 
 instance Exception MigrationException
