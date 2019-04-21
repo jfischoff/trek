@@ -143,7 +143,7 @@ runMigration config@Config {..} mode = do
   pitb <- sequenceA cBackerUpper
 
   for_ (NonEmpty.nonEmpty unappliedMigrations) $
-    runDb cPool . applyMigrationGroup pitb
+    runDb cPool . applyMigrationGroup mode pitb
 
 data RunConfig = RunConfig
 

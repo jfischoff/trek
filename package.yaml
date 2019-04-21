@@ -24,6 +24,12 @@ default-extensions:
 - RecordWildCards
 - LambdaCase
 - RankNTypes
+- ScopedTypeVariables
+- OverloadedStrings
+- GeneralizedNewtypeDeriving
+- DerivingVia
+- DeriveGeneric
+- DeriveAnyClass
 
 dependencies:
 - base >= 4.7 && < 5
@@ -36,6 +42,10 @@ dependencies:
 - resource-pool
 - bytestring
 - semigroups
+- exceptions
+- time-qq
+- cryptonite
+- memory
 
 library:
   source-dirs: src
@@ -67,3 +77,4 @@ tests:
     - trek
     - tmp-postgres
     - hspec-expectations-lifted
+    - hspec-expectations-monadthrow

@@ -1,8 +1,10 @@
--- This file has been generated from package.yaml by hpack version 0.28.2.
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d77973ef6dffa8c9fff08f13922e4ed81c61910aedb3632d6281a096635fe0d0
+-- hash: 5c4f8d73e2d72e3bf754b0f5e546bbff8d017c4a31eb5c3f848f06436f1e8c5f
 
 name:           trek
 version:        0.1.0.0
@@ -15,10 +17,9 @@ copyright:      2019 Jonathan Fischoff
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-cabal-version:  >= 1.10
 extra-source-files:
-    ChangeLog.md
     README.md
+    ChangeLog.md
 
 source-repository head
   type: git
@@ -35,10 +36,13 @@ library
       Paths_trek
   hs-source-dirs:
       src
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptonite
+    , exceptions
+    , memory
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
@@ -46,6 +50,7 @@ library
     , semigroups
     , text
     , time
+    , time-qq
     , tmp-postgres
   default-language: Haskell2010
 
@@ -55,11 +60,14 @@ executable trek-exe
       Paths_trek
   hs-source-dirs:
       app
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptonite
+    , exceptions
+    , memory
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
@@ -67,6 +75,7 @@ executable trek-exe
     , semigroups
     , text
     , time
+    , time-qq
     , tmp-postgres
     , trek
   default-language: Haskell2010
@@ -81,14 +90,18 @@ test-suite test
       Paths_trek
   hs-source-dirs:
       test
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , cryptonite
+    , exceptions
     , hspec
     , hspec-discover
     , hspec-expectations-lifted
+    , hspec-expectations-monadthrow
+    , memory
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
@@ -96,6 +109,7 @@ test-suite test
     , semigroups
     , text
     , time
+    , time-qq
     , tmp-postgres
     , trek
   default-language: Haskell2010

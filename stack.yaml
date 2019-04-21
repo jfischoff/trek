@@ -35,11 +35,16 @@ resolver: lts-13.15
 #  - wai
 packages:
 - .
+- location:
+    git: https://github.com/jfischoff/hspec-expectations-monadthrow
+    commit: 3f13ff7cae0e3dca04ff9e9d555551f47178f76e
+  extra-dep: true
 # Dependency packages to be pulled from upstream that are not in the resolver
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
 - postgresql-simple-opts-0.3.0.1
+# - hspec-expectations-monadthrow-0.1.0.0
 
 
 # Override default flag values for local packages and extra-deps
