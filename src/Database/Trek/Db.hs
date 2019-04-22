@@ -165,11 +165,7 @@ applicationsAlreadyExists = PS.SqlError
   }
 
 getAppliedVersions :: DB [Version]
-getAppliedVersions = map PS.fromOnly <$> query_ [sql|
-  SELECT version
-  FROM migrations
-  ORDER BY created_at ASC
-  |]
+getAppliedVersions = map fst <$> getAppliedMigrations
 
 applyMigrationGroup :: Mode -> Maybe PointInTime -> NonEmpty Migration -> DB ApplicationId
 applyMigrationGroup mode mpitb migrations = do

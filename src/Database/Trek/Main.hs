@@ -5,11 +5,18 @@ import Database.Trek.Db
 import Database.Trek.Dump
 
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.Foldable
 import Data.Pool
 import qualified Database.PostgreSQL.Simple as PS
 import Database.PostgreSQL.Transact
 import qualified Data.List.NonEmpty as NonEmpty
+import Data.Time
+import qualified Data.ByteString as BS
+import System.FilePath.Posix
+import Control.Exception
+import Data.List.Split
+import System.Directory
 
 data Config = Config
   { cMigrationDirectory :: FilePath
@@ -20,40 +27,62 @@ data Config = Config
   , cDropDb :: DB ()
   }
 
+filterByVersions :: [Migration] -> [Version] -> [Migration]
+filterByVersions = undefined
+
 qaModeMigrationsToApply
   :: Config
   -> Maybe Dump
-  -> [(FilePath, Version, Hash)]
+  -> [Migration]
   -> [(Version, Maybe Hash)]
-  -> IO [FilePath]
+  -> IO [Migration]
 qaModeMigrationsToApply Config {..} _mDump allMigrations appliedMigrations = do
   -- TODO find all of the hash conflicts
-  case findAllHashConflicts allMigrations appliedMigrations of
-    [] -> pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $ map fst appliedMigrations
+  filterByVersions allMigrations <$> case findAllHashConflicts allMigrations appliedMigrations of
+    [] -> pure $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
     x:xs -> do
       cRollbacker =<< runDb cPool (oldestMigrationPitb $ x NonEmpty.:| xs)
       newAppliedVersions <- runDb cPool getAppliedVersions
-      pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $
+      pure $ diffToUnappliedMigrations (map mVersion allMigrations) $
         newAppliedVersions
 
 -- Throws FailedToParseMigratrionFilePaths
-readMigrations :: FilePath -> IO [(FilePath, Version, Hash)]
-readMigrations = undefined
+readMigrations :: FilePath -> IO [Migration]
+readMigrations directoryPath = do
+  files <- listDirectory directoryPath
+  mapM (loadMigration . (\x -> directoryPath ++ "/" ++ x)) files
 
-diffToUnappliedMigrations :: [(FilePath, Version)] -> [Version] -> [(FilePath, Version)]
+diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations = undefined
 
 loadMigration :: FilePath -> IO Migration
-loadMigration = undefined
+loadMigration filePath = do
+  mQuery <- BS.readFile filePath
+  let fileName = dropExtension $ takeBaseName filePath
+  (mName, mVersion) <- either (throwIO . FailedToParseMigratrionFilePaths . pure) pure $
+    parseVersionName fileName
+  pure Migration {..}
+
+dateFormat :: String
+dateFormat = iso8601DateFormat (Just "%H-%M-%S")
+
+createFileName :: Text -> UTCTime -> FilePath
+createFileName name version = T.unpack name ++ "_" ++ formatTime defaultTimeLocale dateFormat version
 
 parseVersionName :: FilePath -> Either String (Text, Version)
-parseVersionName = undefined
+parseVersionName filePath = case splitOn "_" filePath of
+  [namePart, datePart] -> fmap (T.pack namePart,) $ case parseTimeM False defaultTimeLocale dateFormat datePart of
+    Nothing -> Left $ "Failed to parse " ++ show datePart ++ " as an ISO 8601 date"
+    Just date -> pure date
+  [] -> Left "Empty file path!"
+  [x] -> Left $ "Was unable to split " ++ show filePath ++ " on '_'"
+  xs -> Left $ "Split by 'x' gave too many parts with "
+     ++ show filePath
+     ++ ". Expected one '-' but found many"
 
 hashConflicts :: [(Version, Hash)] -> [(Version, Maybe Hash)] -> [Version]
 hashConflicts = undefined
 
-drop3 :: (a, b, c) -> (a, b)
-drop3 = undefined
 
 -- This is a complicated function
 -- The logic is simple for production
@@ -66,37 +95,37 @@ determineMigrationsToApply
   :: Config
   -> Mode
   -> Maybe Dump
-  -> [(FilePath, Version, Hash)]
+  -> [Migration]
   -> [(Version, Maybe Hash)]
-  -> IO [FilePath]
+  -> IO [Migration]
 determineMigrationsToApply config mode mDump allMigrations appliedMigrations = case mode of
   Dev  -> devModeMigrationsToApply config mDump allMigrations appliedMigrations
   Qa   -> qaModeMigrationsToApply config mDump allMigrations appliedMigrations
   Prod -> pure $ prodModeMigrationsToApply allMigrations appliedMigrations
 
 prodModeMigrationsToApply
-  :: [(FilePath, Version, Hash)]
+  :: [Migration]
   -> [(Version, Maybe Hash)]
-  -> [FilePath]
+  -> [Migration]
 prodModeMigrationsToApply allMigrations appliedMigrations =
-  map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $ map fst appliedMigrations
+  filterByVersions allMigrations $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
 
 findAllHashConflicts
-  :: [(FilePath, Version, Hash)]
+  :: [Migration]
   -> [(Version, Maybe Hash)]
   -> [Version]
 findAllHashConflicts _allMigrations _appliedMigrations = undefined
 
-resetDb :: Config -> Maybe Dump -> [(FilePath, Version, Hash)] -> IO [FilePath]
+resetDb :: Config -> Maybe Dump -> [Migration] -> IO [Migration]
 resetDb Config {..} mDump allMigrations = do
   runDb cPool cDropDb
   for_ mDump $ applySchema Dev
   newAppliedVersions <- runDb cPool getAppliedVersions
-  pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) newAppliedVersions
+  pure $ filterByVersions allMigrations $ diffToUnappliedMigrations (map mVersion allMigrations) newAppliedVersions
 
 
 hasHashConflict
-  :: [(FilePath, Version, Hash)]
+  :: [Migration]
   -> [(Version, Maybe Hash)]
   -> Bool
 hasHashConflict = undefined
@@ -105,13 +134,13 @@ hasHashConflict = undefined
 devModeMigrationsToApply
   :: Config
   -> Maybe Dump
-  -> [(FilePath, Version, Hash)]
+  -> [Migration]
   -> [(Version, Maybe Hash)]
-  -> IO [FilePath]
+  -> IO [Migration]
 devModeMigrationsToApply config mDump allMigrations appliedMigrations = do
   if hasHashConflict allMigrations appliedMigrations
     then resetDb config mDump allMigrations
-    else pure $ map fst $ diffToUnappliedMigrations (map drop3 allMigrations) $ map fst appliedMigrations
+    else pure $ filterByVersions allMigrations $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
 
 -- TODO I need a dry run capability
 -- I should be able to ignore the dump
@@ -135,10 +164,8 @@ runMigration config@Config {..} mode = do
 
   appliedMigrations <- runDb cPool getAppliedMigrations
 
-  unappliedMigrationFilePaths <-
+  unappliedMigrations <-
     determineMigrationsToApply config mode mSchema allMigrations appliedMigrations
-
-  unappliedMigrations <- mapM loadMigration unappliedMigrationFilePaths
 
   pitb <- sequenceA cBackerUpper
 

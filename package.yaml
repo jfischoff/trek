@@ -30,6 +30,7 @@ default-extensions:
 - DerivingVia
 - DeriveGeneric
 - DeriveAnyClass
+- TupleSections
 
 dependencies:
 - base >= 4.7 && < 5
@@ -47,6 +48,11 @@ dependencies:
 - cryptonite
 - memory
 - interpolatedstring-perl6
+- temporary
+- async
+- filepath
+- split
+- directory
 
 library:
   source-dirs: src

@@ -19,32 +19,10 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty)
 import Text.InterpolatedString.Perl6
 import Data.Foldable
+import Tests.Database.Trek.DbUtils
 
 main :: IO ()
 main = hspec spec
-
-createTempConnection :: IO (Psql.Connection, Temp.DB)
-createTempConnection = do
-  db <- either throwIO pure =<< Temp.start []
-  let connString = Temp.connectionString db
-  connection <- Psql.connectPostgreSQL $ BSC.pack connString
-  return (connection, db)
-
--- Either run the job or not
-setupDB :: IO (Psql.Connection, Temp.DB)
-setupDB = do
-  (connection, db) <- createTempConnection
-  let url = Temp.connectionString db
-  return (connection, db)
-
-withTestDB :: SpecWith (Psql.Connection, Temp.DB) -> Spec
-withTestDB = beforeAll setupDB . afterAll stopDB
-
-stopDB :: (Psql.Connection, Temp.DB) -> IO ()
-stopDB (c, x) = void $ Psql.close c >> Temp.stop x
-
-withDB :: DB a -> (Psql.Connection, Temp.DB) -> IO a
-withDB x (c, _) = runDBTSerializable x c
 
 verifyTableExists :: String -> DB Bool
 verifyTableExists tableName = Psql.fromOnly . head <$> query_ [qq|
