@@ -165,3 +165,34 @@ spec = describe "Run" $ do
               }
             ]
           ]
+
+      it "running runMigration with a new migration and old ones applies the new one" $ \config -> do
+        let mode = Dev
+        let migrations = [stuffMigration, thangMigration, Migration
+              { mVersion = [utcIso8601| 2048-12-03 |]
+              , mName = "foo"
+              , mQuery = "CREATE TABLE foo (id SERIAL PRIMARY KEY);"
+              }]
+
+        runMigration config mode migrations
+
+        runDb config (Db.tableExists "foo") `shouldReturn` True
+
+        listApplications config `shouldReturn`
+          [ Db.ProdApplicationRecord Nothing
+              [ Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-01 |]
+                , pmName = "stuff"
+                }
+              , Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-02 |]
+                , pmName = "thang"
+                }
+              ]
+          , Db.ProdApplicationRecord Nothing
+              [ Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-03 |]
+                , pmName = "foo"
+                }
+              ]
+          ]
