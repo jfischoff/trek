@@ -141,3 +141,27 @@ spec = describe "Run" $ do
               }
             ]
           ]
+
+      it "call runMigration twice does nothing" $ \config -> do
+        let mode = Dev
+        let migrations = [stuffMigration, thangMigration]
+
+        runDb config (Db.tableExists "stuff") `shouldReturn` True
+        runDb config (Db.tableExists "thang") `shouldReturn` True
+
+        runMigration config mode migrations
+
+        runDb config (Db.tableExists "stuff") `shouldReturn` True
+        runDb config (Db.tableExists "thang") `shouldReturn` True
+
+        listApplications config `shouldReturn` [Db.ProdApplicationRecord Nothing
+            [ Db.ProdMigration
+              { pmVersion = [utcIso8601| 2048-12-01 |]
+              , pmName = "stuff"
+              }
+            , Db.ProdMigration
+              { pmVersion = [utcIso8601| 2048-12-02 |]
+              , pmName = "thang"
+              }
+            ]
+          ]
