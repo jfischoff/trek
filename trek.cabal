@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 76d406d3cf8bd5973895b4977723765ad9d5e70434f2128fa2f54b66e7e181cf
+-- hash: 31c51c775427bef2dd6c655527229e10a591e25d8be898820aa94568c2a0f083
 
 name:           trek
 version:        0.1.0.0
@@ -31,6 +31,7 @@ library
       Database.Trek.Db
       Database.Trek.Dump
       Database.Trek.Main
+      Database.Trek.Run
       Database.Trek.Types
   other-modules:
       Paths_trek
@@ -38,9 +39,11 @@ library
       src
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   build-depends:
-      async
+      aeson
+    , async
     , base >=4.7 && <5
     , bytestring
+    , containers
     , cryptonite
     , directory
     , exceptions
@@ -50,6 +53,7 @@ library
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
+    , process
     , resource-pool
     , semigroups
     , split
@@ -69,9 +73,11 @@ executable trek-exe
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
   build-depends:
-      async
+      aeson
+    , async
     , base >=4.7 && <5
     , bytestring
+    , containers
     , cryptonite
     , directory
     , exceptions
@@ -81,6 +87,7 @@ executable trek-exe
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
+    , process
     , resource-pool
     , semigroups
     , split
@@ -100,15 +107,19 @@ test-suite test
       Tests.Database.Trek.DbUtils
       Tests.Database.Trek.DumpSpec
       Tests.Database.Trek.MainSpec
+      Tests.Database.Trek.RunSpec
+      Tests.Database.Trek.TestUtils
       Paths_trek
   hs-source-dirs:
       test
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
-      async
+      aeson
+    , async
     , base >=4.7 && <5
     , bytestring
+    , containers
     , cryptonite
     , directory
     , exceptions
@@ -122,6 +133,7 @@ test-suite test
     , pg-transact
     , postgresql-simple
     , postgresql-simple-opts
+    , process
     , resource-pool
     , semigroups
     , split

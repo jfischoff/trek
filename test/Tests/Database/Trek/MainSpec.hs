@@ -2,9 +2,10 @@ module Tests.Database.Trek.MainSpec where
 
 import Test.Hspec
 import Tests.Database.Trek.DbUtils
+import Tests.Database.Trek.TestUtils
 import Database.Trek.Main
 import Database.Trek.Types
-import System.IO.Temp
+
 import qualified Control.Concurrent.Async as Async
 import Control.Concurrent.Async (Async)
 import Control.Concurrent
@@ -19,27 +20,6 @@ import Data.List
 
 main :: IO ()
 main = hspec spec
-
-aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
-aroundAll withFunc specWith = do
-  let start :: IO (a, Async ())
-      start = do
-        var <- newEmptyMVar
-
-        thread <- Async.async $ withFunc $ \value -> do
-          putMVar var value
-          forever $ threadDelay 100000000
-
-        theA <- takeMVar var
-        pure (theA, thread)
-
-      stop :: (a, Async ()) -> IO ()
-      stop = Async.cancel . snd
-
-  beforeAll start $ afterAll stop $ beforeWith (pure . fst) specWith
-
-withTempDir :: SpecWith FilePath -> Spec
-withTempDir = aroundAll (withSystemTempDirectory "trek-test")
 
 stuffVersion :: UTCTime
 stuffVersion = [utcIso8601| 2048-12-01 |]
@@ -75,7 +55,7 @@ thangMigration = Migration
 
 spec :: Spec
 spec = describe "Main" $ do
-  withTempDir $ describe "Migration File Operations" $ do
+  withTempDir "trek-main" $ describe "Migration File Operations" $ do
     it "readMigrations gives empty to start" $ \fileDirectory -> do
       readMigrations fileDirectory `shouldReturn` []
 
@@ -99,6 +79,19 @@ spec = describe "Main" $ do
 
       fmap sort (readMigrations fileDirectory) `shouldReturn` sort [stuffMigration, thangMigration]
 
+  --
+  withTestDB $ describe "prod setup" $ do
+    -- can it create the db?
+    -- maybe?
+    -- Let's assume it cannot for now
+    --
+    -- test one
+    -- setup works
+    -- fails if run twice
+    --
+    -- runMigration after setup works
+    --
+    -- Should I change runMigration to work with a list of migrations?
+    -- seems so
 
-  withTestDB $ describe "dev setup" $ do
     pure ()

@@ -53,6 +53,9 @@ dependencies:
 - filepath
 - split
 - directory
+- containers
+- aeson
+- process
 
 library:
   source-dirs: src

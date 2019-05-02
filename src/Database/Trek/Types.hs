@@ -30,12 +30,16 @@ newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
   deriving (ToRow) via (PS.Only ApplicationId)
 
 data MigrationException
-  = NoMigrationTables
+  = NoSetup
+  | SetupRanTwice
   | FailedToParseMigratrionFilePaths [FilePath]
   | MigrationAlreadyApplied Version
   | EmptyApplication ApplicationId
   | InvalidMigrationVersion [Version]
-  deriving(Show, Eq, Ord, Typeable)
+  | InvalidDumpMigrations FilePath String
+  | UnsafeApplySchemaOnProd
+  | UnknownSqlException PS.SqlError
+  deriving(Show, Eq, Typeable)
 
 instance Exception MigrationException
 
@@ -46,7 +50,7 @@ data Migration = Migration
   { mVersion :: Version
   , mName :: Text
   , mQuery :: ByteString
-  } 
+  }
   deriving stock (Show, Eq, Ord, Generic)
 
 hashMigration :: Migration -> Hash
