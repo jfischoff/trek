@@ -196,3 +196,40 @@ spec = describe "Run" $ do
                 }
               ]
           ]
+
+      it "running runMigration with just a new migration works" $ \config -> do
+        let mode = Dev
+        let migrations = [Migration
+              { mVersion = [utcIso8601| 2048-12-04 |]
+              , mName = "bar"
+              , mQuery = "CREATE TABLE bar (id SERIAL PRIMARY KEY);"
+              }]
+
+        runMigration config mode migrations
+
+        runDb config (Db.tableExists "bar") `shouldReturn` True
+
+        listApplications config `shouldReturn`
+          [ Db.ProdApplicationRecord Nothing
+              [ Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-01 |]
+                , pmName = "stuff"
+                }
+              , Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-02 |]
+                , pmName = "thang"
+                }
+              ]
+          , Db.ProdApplicationRecord Nothing
+              [ Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-03 |]
+                , pmName = "foo"
+                }
+              ]
+          , Db.ProdApplicationRecord Nothing
+              [ Db.ProdMigration
+                { pmVersion = [utcIso8601| 2048-12-04 |]
+                , pmName = "bar"
+                }
+              ]
+          ]
