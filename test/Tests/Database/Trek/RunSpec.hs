@@ -102,8 +102,8 @@ spec = describe "Run" $ do
       [[utcIso8601| 2048-12-02 |]]
         `shouldBe` [[utcIso8601| 2048-12-03 |]]
 
-  withTestConfig $ do
-    forM_ [minBound .. maxBound] $ \mode -> describe ("setup mode " ++ show mode ) $ do
+  forM_ [minBound .. maxBound] $ \mode -> withTestConfig $ do
+    describe ("setup mode " ++ show mode ) $ do
       it "is valid" $ \config -> do
         setup config mode
         diffSetup config mode `shouldReturn` mempty
@@ -117,7 +117,6 @@ spec = describe "Run" $ do
 
     describe "runMigration" $ do
       it "adds new tables and updates the migration table" $ \config -> do
-        let mode = Dev
         setup config mode
         let migrations = [stuffMigration, thangMigration]
 
@@ -143,7 +142,6 @@ spec = describe "Run" $ do
           ]
 
       it "call runMigration twice does nothing" $ \config -> do
-        let mode = Dev
         let migrations = [stuffMigration, thangMigration]
 
         runDb config (Db.tableExists "stuff") `shouldReturn` True
@@ -167,7 +165,6 @@ spec = describe "Run" $ do
           ]
 
       it "running runMigration with a new migration and old ones applies the new one" $ \config -> do
-        let mode = Dev
         let migrations = [stuffMigration, thangMigration, Migration
               { mVersion = [utcIso8601| 2048-12-03 |]
               , mName = "foo"
@@ -198,7 +195,6 @@ spec = describe "Run" $ do
           ]
 
       it "running runMigration with just a new migration works" $ \config -> do
-        let mode = Dev
         let migrations = [Migration
               { mVersion = [utcIso8601| 2048-12-04 |]
               , mName = "bar"
