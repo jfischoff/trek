@@ -30,11 +30,11 @@ runDb Config {..} db = withMVar cConnection $ Db.mapSqlError . runDBTSerializabl
 
 data Config = Config
   { cSchemaFilePath :: FilePath
-  , cConnection :: MVar PS.Connection
-  , cRollbacker :: PointInTime -> IO ()
-  , cBackerUpper :: Maybe (IO PointInTime)
-  , cDbOptions :: PS.Options
-  , cQaBackupDir :: FilePath
+  , cConnection     :: MVar PS.Connection
+  , cRollbacker     :: PointInTime -> IO ()
+  , cBackerUpper    :: Maybe (IO PointInTime)
+  , cDbOptions      :: PS.Options
+  , cQaBackupDir    :: FilePath
   }
 
 filterByVersions :: [Migration] -> [Version] -> [Migration]

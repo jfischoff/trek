@@ -229,3 +229,6 @@ spec = describe "Run" $ do
                 }
               ]
           ]
+
+  describe "QA Mode" $ withTestConfig $ do
+    pure ()
