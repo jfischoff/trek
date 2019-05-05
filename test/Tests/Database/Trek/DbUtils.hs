@@ -1,6 +1,6 @@
 module Tests.Database.Trek.DbUtils where
 
-import Tests.Database.Trek.TestUtils 
+import Tests.Database.Trek.TestUtils
 import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Simple as Psql
 import Control.Monad (void)
@@ -15,7 +15,7 @@ verifyTableExists :: String -> DB Bool
 verifyTableExists tableName = Psql.fromOnly . head <$> query_ [qq|
   SELECT EXISTS (
   SELECT 1
-  FROM   information_schema.tables 
+  FROM   information_schema.tables
   WHERE  table_schema = 'public'
   AND    table_name = '{tableName}'
   );
@@ -23,7 +23,11 @@ verifyTableExists tableName = Psql.fromOnly . head <$> query_ [qq|
 
 createTempConnection :: IO (Psql.Connection, Temp.DB)
 createTempConnection = do
-  db <- either throwIO pure =<< Temp.start []
+  db <- either throwIO pure =<< Temp.start
+    [ ("archive_mode", "on")
+    , ("archive_command", "")
+    , ("wal_level", "replica")
+    ]
   let connString = Temp.connectionString db
   connection <- Psql.connectPostgreSQL $ BSC.pack connString
   return (connection, db)
@@ -38,11 +42,11 @@ setupDB = do
 withTestDB :: SpecWith (Psql.Connection, Temp.DB) -> Spec
 withTestDB = beforeAll setupDB . afterAll stopDB
 
-withTheTestDb :: ((Psql.Connection, Temp.DB) -> IO ()) -> IO () 
-withTheTestDb f = bracket setupDB stopDB f 
+withTheTestDb :: ((Psql.Connection, Temp.DB) -> IO ()) -> IO ()
+withTheTestDb f = bracket setupDB stopDB f
 
 withTestDBAndDirectory :: String -> ((Psql.Connection, Temp.DB, FilePath) -> IO ()) -> IO ()
-withTestDBAndDirectory name f = withTheTestDb $ \(x, y) -> 
+withTestDBAndDirectory name f = withTheTestDb $ \(x, y) ->
   withSystemTempDirectory name $ \filePath -> f (x, y, filePath)
 
 withTestDbAndDirSpec :: String -> SpecWith  (Psql.Connection, Temp.DB, FilePath) -> Spec

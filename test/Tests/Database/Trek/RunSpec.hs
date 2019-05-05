@@ -9,6 +9,7 @@ import Data.Foldable
 import Control.Concurrent
 import qualified Database.Postgres.Temp.Internal as Temp
 import qualified Database.PostgreSQL.Simple.Options as PS
+import qualified Database.PostgreSQL.Simple as PS
 import Data.Time.QQ
 import Test.Hspec
 import Data.Text (Text)
@@ -45,6 +46,9 @@ thangMigration = Migration
   , mName = thangName
   , mQuery = thangQuery
   }
+
+-- testRollbacker :: String -> PointInTime -> IO ()
+-- testRollbacker db
 
 main :: IO ()
 main = hspec spec
@@ -101,7 +105,7 @@ spec = describe "Run" $ do
       [[utcIso8601| 2048-12-02 |], [utcIso8601| 2048-12-03 |]]
       [[utcIso8601| 2048-12-02 |]]
         `shouldBe` [[utcIso8601| 2048-12-03 |]]
-
+{-
   forM_ [minBound .. maxBound] $ \mode -> withTestConfig $ do
     describe ("setup mode " ++ show mode ) $ do
       it "is valid" $ \config -> do
@@ -229,6 +233,12 @@ spec = describe "Run" $ do
                 }
               ]
           ]
-
+-}
+  -- To do this test I need a way to stop postgres without removing the tmp folder
+  -- I can stop the process
+  -- and then adjust the folder
+  -- and then restart it
   describe "QA Mode" $ withTestConfig $ do
-    pure ()
+    describe "pitr" $ do
+      it "works in general" $ \config ->
+        putStrLn =<< defaultBackerUpper (cConnection config)

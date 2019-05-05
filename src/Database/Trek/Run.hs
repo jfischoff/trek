@@ -24,9 +24,20 @@ import Control.Monad (join)
 import qualified Database.PostgreSQL.Simple.Options as PS
 import Control.Concurrent
 import qualified Database.Trek.Db as Db
+import Database.PostgreSQL.Simple.SqlQQ
 
 runDb :: Config -> DB a -> IO a
 runDb Config {..} db = withMVar cConnection $ Db.mapSqlError . runDBTSerializable db
+
+defaultBackerUpper :: MVar PS.Connection -> IO PointInTime
+defaultBackerUpper mconn = do
+  pitrLabel <- formatTime defaultTimeLocale dateFormat <$> getCurrentTime
+  _ :: String <- withMVar mconn $ runDBTSerializable
+    ( PS.fromOnly . head <$> query [sql|
+        SELECT pg_xlogfile_name(pg_create_restore_point(?))
+      |] (PS.Only (pitrLabel :: String))
+    )
+  pure pitrLabel
 
 data Config = Config
   { cSchemaFilePath :: FilePath
