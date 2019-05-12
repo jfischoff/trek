@@ -14,6 +14,10 @@ import Data.Time.QQ
 import Test.Hspec
 import Data.Text (Text)
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Char8 as BSC
+import System.Directory
+import System.Process
+import System.Exit
 
 stuffVersion :: UTCTime
 stuffVersion = [utcIso8601| 2048-12-01 |]
@@ -105,7 +109,7 @@ spec = describe "Run" $ do
       [[utcIso8601| 2048-12-02 |], [utcIso8601| 2048-12-03 |]]
       [[utcIso8601| 2048-12-02 |]]
         `shouldBe` [[utcIso8601| 2048-12-03 |]]
-{-
+
   forM_ [minBound .. maxBound] $ \mode -> withTestConfig $ do
     describe ("setup mode " ++ show mode ) $ do
       it "is valid" $ \config -> do
@@ -233,12 +237,74 @@ spec = describe "Run" $ do
                 }
               ]
           ]
--}
+
   -- To do this test I need a way to stop postgres without removing the tmp folder
   -- I can stop the process
   -- and then adjust the folder
   -- and then restart it
-  describe "QA Mode" $ withTestConfig $ do
+  describe "QA Mode" $ withTestDbAndDirSpec "qa-mode" $ do
     describe "pitr" $ do
-      it "works in general" $ \config ->
-        putStrLn =<< defaultBackerUpper (cConnection config)
+      it "works in general" $ \(conn, db, tmpDir) -> do
+        let mainFilePath = Temp.mainDir db
+            dataDir = mainFilePath ++ "/data"
+            walArchiveDir = mainFilePath ++ "/archive"
+            baseBackupFile = mainFilePath ++ "/backup"
+
+        appendFile (dataDir ++ "/pg_hba.conf") $ "local replication all trust"
+        let archiveLine = "archive_command = " ++
+              "'test ! -f " ++ walArchiveDir ++ "/%f && cp %p " ++ walArchiveDir ++ "/%f'\n"
+
+        appendFile (dataDir ++ "/postgresql.conf") $ archiveLine
+
+        createDirectory walArchiveDir
+
+        Temp.reloadConfig db
+
+        res <- system ("pg_basebackup -D " ++ baseBackupFile ++ " --format=tar -p" ++ show (Temp.port db) ++ " -h" ++ mainFilePath)
+        res `shouldBe` ExitSuccess
+
+        -- setup the config to take backups and restore
+        cConnection <- newMVar conn
+        let cSchemaFilePath = tmpDir ++ "/dump"
+            cBackerUpper = Just $ defaultBackerUpper cConnection
+            Right partial = PS.parseConnectionString $ Temp.connectionString db
+            Right cDbOptions = PS.completeOptions partial
+            cQaBackupDir = tmpDir ++ "/backup"
+
+            cRollbacker = \pitrLabel -> do
+              -- need to close the connection and then reconnect ... hmm probably should be automatic?
+              modifyMVar_ cConnection $ \conn -> do
+                putStrLn "rolling back"
+                PS.close conn
+                Temp.stopPostgres db `shouldReturn` Just ExitSuccess
+
+                removeDirectoryRecursive dataDir
+                createDirectory dataDir
+                let untarCommand = "tar -C" ++ dataDir ++ " -xf " ++ baseBackupFile ++ "/base.tar"
+                _ <- system untarCommand
+                _ <- system ("chmod -R 700 " ++ dataDir)
+                writeFile (dataDir ++ "/recovery.conf") $ "recovery_target_name='" ++ pitrLabel ++ "'\nrecovery_target_inclusive=true\nrestore_command='"
+                  ++ "cp " ++ walArchiveDir ++ "/%f %p'"
+
+                Temp.startPostgres db
+
+                PS.connectPostgreSQL $ BSC.pack $ Temp.connectionString db
+
+            config = Config {..}
+
+        -- Setup for QA mode
+        setup config Qa
+
+        runDb config (Db.tableExists "stuff") `shouldReturn` False
+
+        runMigration config Qa [stuffMigration]
+
+        runDb config (Db.tableExists "stuff") `shouldReturn` True
+
+        runMigration config Qa [stuffMigration
+          { mQuery = "CREATE TABLE stuffy (id SERIAL PRIMARY KEY)"
+          }]
+
+        runDb config (Db.tableExists "stuff") `shouldReturn` False
+        runDb config (Db.tableExists "stuffy") `shouldReturn` True
+

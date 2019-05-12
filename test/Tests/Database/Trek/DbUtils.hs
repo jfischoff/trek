@@ -25,8 +25,8 @@ createTempConnection :: IO (Psql.Connection, Temp.DB)
 createTempConnection = do
   db <- either throwIO pure =<< Temp.start
     [ ("archive_mode", "on")
-    , ("archive_command", "")
     , ("wal_level", "replica")
+    , ("max_wal_senders", "2")
     ]
   let connString = Temp.connectionString db
   connection <- Psql.connectPostgreSQL $ BSC.pack connString
