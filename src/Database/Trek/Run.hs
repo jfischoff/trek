@@ -26,6 +26,7 @@ import Control.Concurrent
 import qualified Database.Trek.Db as Db
 import Database.PostgreSQL.Simple.SqlQQ
 
+-- Run a Db action and convert any SqlError to a MigrationException
 runDb :: Config -> DB a -> IO a
 runDb Config {..} db = withMVar cConnection $ Db.mapSqlError . runDBTSerializable db
 
@@ -52,29 +53,13 @@ filterByVersions :: [Migration] -> [Version] -> [Migration]
 filterByVersions migrations =
   mapMaybe (\x -> find (\m -> mVersion m == x) migrations)
 
-qaModeMigrationsToApply
-  :: Config
-  -> FilePath
-  -> [Migration]
-  -> [(Version, Maybe Hash)]
-  -> IO [Migration]
-qaModeMigrationsToApply config@Config {..} filePath allMigrations appliedMigrations = do
-  -- TODO find all of the hash conflicts
-  filterByVersions allMigrations <$> case findAllHashConflicts allMigrations appliedMigrations of
-    [] -> pure $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
-    x:xs -> do
-      cRollbacker =<< runDb config (Db.oldestMigrationPitb $ x NonEmpty.:| xs)
-      newAppliedVersions <- runDb config Db.getAppliedVersions
-      pure $ diffToUnappliedMigrations (map mVersion allMigrations) $
-        newAppliedVersions
+dateFormat :: String
+dateFormat = iso8601DateFormat (Just "%H-%M-%S")
 
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
   = Set.toList
   $ Set.fromList allMigrations `Set.difference` Set.fromList appliedMigrations
-
-dateFormat :: String
-dateFormat = iso8601DateFormat (Just "%H-%M-%S")
 
 -- First filter by versions that have a hash
 hashConflicts :: [(Version, Hash)] -> [(Version, Maybe Hash)] -> [Version]
@@ -88,6 +73,19 @@ hashConflicts newVersions oldVersions =
           _ -> Nothing
 
   in mapMaybe (lookupDifferentHash hashableMap) newVersions
+
+hasHashConflict
+  :: [Migration]
+  -> [(Version, Maybe Hash)]
+  -> Bool
+hasHashConflict x = not . null . findAllHashConflicts x
+
+findAllHashConflicts
+  :: [Migration]
+  -> [(Version, Maybe Hash)]
+  -> [Version]
+findAllHashConflicts allMigrations appliedMigrations =
+  hashConflicts (map ((mVersion *** hashMigration) . join (,)) allMigrations) appliedMigrations
 
 -- This is a complicated function
 -- The logic is simple for production
@@ -112,15 +110,28 @@ prodModeMigrationsToApply
   :: [Migration]
   -> [(Version, Maybe Hash)]
   -> [Migration]
-prodModeMigrationsToApply allMigrations appliedMigrations =
-  filterByVersions allMigrations $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
+prodModeMigrationsToApply allMigrations appliedMigrations
+  = filterByVersions allMigrations
+  $ diffToUnappliedMigrations (map mVersion allMigrations)
+  $ map fst appliedMigrations
 
-findAllHashConflicts
-  :: [Migration]
+-- This should utilize the schema dump
+-- It should rollback, migrate forward, dump the data, load from a schema, reload the data.
+qaModeMigrationsToApply
+  :: Config
+  -> FilePath
+  -> [Migration]
   -> [(Version, Maybe Hash)]
-  -> [Version]
-findAllHashConflicts allMigrations appliedMigrations =
-  hashConflicts (map ((mVersion *** hashMigration) . join (,)) allMigrations) appliedMigrations
+  -> IO [Migration]
+qaModeMigrationsToApply config@Config {..} filePath allMigrations appliedMigrations = do
+  -- TODO find all of the hash conflicts
+  filterByVersions allMigrations <$> case findAllHashConflicts allMigrations appliedMigrations of
+    [] -> pure $ diffToUnappliedMigrations (map mVersion allMigrations) $ map fst appliedMigrations
+    x:xs -> do
+      cRollbacker =<< runDb config (Db.oldestMigrationPitb $ x NonEmpty.:| xs)
+      newAppliedVersions <- runDb config Db.getAppliedVersions
+      pure $ diffToUnappliedMigrations (map mVersion allMigrations) $
+        newAppliedVersions
 
 resetDb :: Config -> FilePath -> [Migration] -> IO [Migration]
 resetDb config@Config {..} dumpFile allMigrations = do
@@ -128,11 +139,6 @@ resetDb config@Config {..} dumpFile allMigrations = do
   newAppliedVersions <- runDb config Db.getAppliedVersions
   pure $ filterByVersions allMigrations $ diffToUnappliedMigrations (map mVersion allMigrations) newAppliedVersions
 
-hasHashConflict
-  :: [Migration]
-  -> [(Version, Maybe Hash)]
-  -> Bool
-hasHashConflict x = not . null . findAllHashConflicts x
 -- Dev mode will drop the db if the hash is wrong and apply all the migrations again
 -- needs the optional schema migrations
 devModeMigrationsToApply
