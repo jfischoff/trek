@@ -26,6 +26,13 @@ import Control.Concurrent
 import qualified Database.Trek.Db as Db
 import Database.PostgreSQL.Simple.SqlQQ
 
+-- Right now the code deals with the conquencies of hash conflict
+-- but I think this is the wrong architecture
+-- I think I should refactor to unconditionally have a hash column
+-- then there can be different policies for how to deal with the hash
+-- conflict
+-- In prod we just ignore (possibly log) the hash conflict.
+
 -- Run a Db action and convert any SqlError to a MigrationException
 runDb :: Config -> DB a -> IO a
 runDb Config {..} db = withMVar cConnection $ Db.mapSqlError . runDBTSerializable db

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 31c51c775427bef2dd6c655527229e10a591e25d8be898820aa94568c2a0f083
+-- hash: 636591944b45f89cd1cc54532af4a14a78d569fa9e98cf5e9f4ac6ba1867bc91
 
 name:           trek
 version:        0.1.0.0
@@ -28,6 +28,7 @@ source-repository head
 library
   exposed-modules:
       Database.Trek
+      Database.Trek.Core
       Database.Trek.Db
       Database.Trek.Dump
       Database.Trek.Main
@@ -103,6 +104,7 @@ test-suite test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      Tests.Database.Trek.CoreSpec
       Tests.Database.Trek.DbSpec
       Tests.Database.Trek.DbUtils
       Tests.Database.Trek.DumpSpec

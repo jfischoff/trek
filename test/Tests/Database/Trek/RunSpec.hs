@@ -51,9 +51,6 @@ thangMigration = Migration
   , mQuery = thangQuery
   }
 
--- testRollbacker :: String -> PointInTime -> IO ()
--- testRollbacker db
-
 main :: IO ()
 main = hspec spec
 
