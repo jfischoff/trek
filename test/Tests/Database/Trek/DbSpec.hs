@@ -35,7 +35,6 @@ stuffMigration = Migration
   { mVersion = stuffVersion
   , mName = "stuff"
   , mQuery = "CREATE TABLE stuff (id SERIAL PRIMARY KEY);"
-  , mUseTransaction = True
   }
 
 thangVersion :: UTCTime
@@ -46,7 +45,6 @@ thangMigration = Migration
   { mVersion = thangVersion
   , mName = "thang"
   , mQuery = "CREATE TABLE thang (id SERIAL PRIMARY KEY);"
-  , mUseTransaction = True
   }
 
 migrationGroup :: NonEmpty Migration
@@ -152,7 +150,6 @@ spec = describe "Db" $ do
             { mVersion = theVersion
             , mName = theName
             , mQuery = "hey"
-            , mUseTransaction = True
             }
 
           expected = MigrationRow

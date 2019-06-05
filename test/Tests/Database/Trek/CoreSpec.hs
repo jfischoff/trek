@@ -36,7 +36,6 @@ stuffMigration = Migration
   { mVersion = stuffVersion
   , mName = stuffName
   , mQuery = stuffQuery
-  , mUseTransaction = True
   }
 
 thangVersion :: UTCTime
@@ -53,7 +52,6 @@ thangMigration = Migration
   { mVersion = thangVersion
   , mName = thangName
   , mQuery = thangQuery
-  , mUseTransaction = True
   }
 
 fooMigration :: Migration
@@ -61,7 +59,6 @@ fooMigration = Migration
   { mVersion = [utcIso8601| 2048-12-03 |]
   , mName = "foo"
   , mQuery = "CREATE TABLE foo (id SERIAL PRIMARY KEY);"
-  , mUseTransaction = True
   }
 
 barMigration :: Migration
@@ -69,7 +66,6 @@ barMigration = Migration
   { mVersion = [utcIso8601| 2048-12-04 |]
   , mName = "bar"
   , mQuery = "CREATE TABLE bar (id SERIAL PRIMARY KEY);"
-  , mUseTransaction = True
   }
 
 main :: IO ()
