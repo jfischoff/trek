@@ -47,6 +47,7 @@ data Migration = Migration
   { mVersion :: Version
   , mName :: Text
   , mQuery :: ByteString
+  , mUseTransaction :: Bool
   }
   deriving stock (Show, Eq, Ord, Generic)
 
