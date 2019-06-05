@@ -19,7 +19,8 @@ import qualified Data.ByteString.Char8 as BSC
 import System.Directory
 import System.Process
 import System.Exit
-
+import Data.Maybe
+import Data.List (sort)
 
 stuffVersion :: UTCTime
 stuffVersion = [utcIso8601| 2048-12-01 |]
@@ -53,23 +54,47 @@ thangMigration = Migration
   , mQuery = thangQuery
   }
 
+fooMigration :: Migration
+fooMigration = Migration
+  { mVersion = [utcIso8601| 2048-12-03 |]
+  , mName = "foo"
+  , mQuery = "CREATE TABLE foo (id SERIAL PRIMARY KEY);"
+  }
+
+barMigration :: Migration
+barMigration = Migration
+  { mVersion = [utcIso8601| 2048-12-04 |]
+  , mName = "bar"
+  , mQuery = "CREATE TABLE bar (id SERIAL PRIMARY KEY);"
+  }
+
 main :: IO ()
 main = hspec spec
 
 spec :: Spec
 spec = describe "Core" $ do
+  describe "migrationsToApply" $ do
+    it "empty gives empty" $ do
+      migrationsToApply [] [] `shouldBe` ([], []) :: IO ()
+    it "already applied gives empty" $ do
+      migrationsToApply
+        [stuffMigration]
+        [(mVersion stuffMigration, hashQuery $ mQuery stuffMigration)]
+          `shouldBe` ([], []) :: IO ()
+
+
   withTestDB $ do
     describe "setup" $ do
       it "is valid" $ withDB $ do
         setup
-        diffSetup `shouldReturn` mempty
+        Db.diffSetup `shouldReturn` mempty
 
       it "throws if run twice" $ withDB $
         shouldThrow setup $ \SetupRanTwice -> True
 
       it "teardown removes all the tables" $ withDB $ do
         teardown
-        diffSetup `shouldReturn` Db.cleanSchemaDiff Prod
+        Db.diffSetup `shouldReturn` Db.cleanSchemaDiff
 
     describe "migrate" $ do
       it "adds new tables and updates the migration table" $ withDB $ do
@@ -90,85 +115,58 @@ spec = describe "Core" $ do
         Db.tableExists "stuff" `shouldReturn` True
         Db.tableExists "thang" `shouldReturn` True
 
-        migrate migrations
+        before <- Db.getAllApplicationRecords
+
+        migrate migrations `shouldReturn` Nothing
 
         Db.tableExists "stuff" `shouldReturn` True
         Db.tableExists "thang" `shouldReturn` True
 
-        Db.getAllApplicationRecords `shouldReturn` [Db.ProdApplicationRecord Nothing
-            [ Db.ProdMigration
-              { pmVersion = [utcIso8601| 2048-12-01 |]
-              , pmName = "stuff"
-              }
-            , Db.ProdMigration
-              { pmVersion = [utcIso8601| 2048-12-02 |]
-              , pmName = "thang"
-              }
-            ]
-          ]
+        Db.getAllApplicationRecords `shouldReturn` before
 
       it "running runMigration with a new migration and old ones applies the new one" $ withDB $ do
-        let migrations = [stuffMigration, thangMigration, Migration
-              { mVersion = [utcIso8601| 2048-12-03 |]
-              , mName = "foo"
-              , mQuery = "CREATE TABLE foo (id SERIAL PRIMARY KEY);"
-              }]
+        let migrations = [stuffMigration, thangMigration, fooMigration]
 
-        migrate migrations
+        before <- toList <$> Db.getAllApplicationRecords
+
+        Db.ApplicationRow {..} <- fromMaybe (error "migration failed to apply")
+          <$> migrate migrations
 
         Db.tableExists "foo" `shouldReturn` True
 
-        Db.getAllApplicationRecords `shouldReturn`
-          [ Db.ProdApplicationRecord Nothing
-              [ Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-01 |]
-                , pmName = "stuff"
-                }
-              , Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-02 |]
-                , pmName = "thang"
-                }
-              ]
-          , Db.ProdApplicationRecord Nothing
-              [ Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-03 |]
-                , pmName = "foo"
+        fmap (sort . toList) Db.getAllApplicationRecords `shouldReturn` sort
+          ( Db.Application
+              [ Db.MigrationRow
+                { mrVersion = [utcIso8601| 2048-12-03 |]
+                , mrName = "foo"
+                , mrHash = hashQuery $ mQuery fooMigration
+                , mrCreatedAt = arCreatedAt
+                , mrApplicationId = arId
                 }
               ]
-          ]
+            : before
+          )
+
 
       it "running runMigration with just a new migration works" $ withDB $ do
-        let migrations = [Migration
-              { mVersion = [utcIso8601| 2048-12-04 |]
-              , mName = "bar"
-              , mQuery = "CREATE TABLE bar (id SERIAL PRIMARY KEY);"
-              }]
+        let migrations = [barMigration]
 
-        migrate migrations
+        before <- toList <$> Db.getAllApplicationRecords
+
+        Db.ApplicationRow {..} <- fromMaybe (error "migration failed to apply")
+          <$> migrate migrations
 
         Db.tableExists "bar" `shouldReturn` True
 
-        Db.getAllApplicationRecords `shouldReturn`
-          [ Db.ProdApplicationRecord Nothing
-              [ Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-01 |]
-                , pmName = "stuff"
-                }
-              , Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-02 |]
-                , pmName = "thang"
-                }
-              ]
-          , Db.ProdApplicationRecord Nothing
-              [ Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-03 |]
-                , pmName = "foo"
+        fmap (sort . toList) Db.getAllApplicationRecords `shouldReturn` sort
+          ( Db.Application
+              [ Db.MigrationRow
+                { mrVersion = [utcIso8601| 2048-12-04 |]
+                , mrName = "bar"
+                , mrHash = hashQuery $ mQuery barMigration
+                , mrCreatedAt = arCreatedAt
+                , mrApplicationId = arId
                 }
               ]
-          , Db.ProdApplicationRecord Nothing
-              [ Db.ProdMigration
-                { pmVersion = [utcIso8601| 2048-12-04 |]
-                , pmName = "bar"
-                }
-              ]
-          ]
+          : before
+          )

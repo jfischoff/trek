@@ -55,64 +55,6 @@ resetMigrations = do
   clearMigrations
   void $ execute_ [sql|DROP TABLE IF EXISTS stuff ; DROP TABLE IF EXISTS thang; |]
 
-sharedSpecs :: Mode -> SpecWith (Psql.Connection, Temp.DB)
-sharedSpecs mode = do
-  it "getAppliedMigrations returns empty if no migrations" $ withDB $
-      getAppliedMigrations `shouldReturn` []
-
-  it "applyMigration/getAppliedVersions returns the version applied" $ withDB $ do
-    applicationId <- createApplication Nothing
-
-    applyMigration mode applicationId stuffMigration
-
-    getAppliedMigrations `shouldReturn` [(stuffVersion, if mode == Dev then Just $ hashMigration stuffMigration else Nothing)]
-
-  it "applyMigration updates the schema" $ withDB $ assertTableExists "stuff"
-
-  it "applyMigration throws if it is already applied" $ withDB $ do
-    applicationId <- createApplication Nothing
-
-    shouldThrow (applyMigration mode applicationId stuffMigration) $
-      \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
-
-  it "applyMigrationGroup applies all the migrations" $ withDB $ do
-    resetMigrations
-
-    applicationId <- applyMigrationGroup mode Nothing migrationGroup
-
-    getMigrationsInApplication applicationId `shouldReturn`
-      fmap mVersion migrationGroup
-
-  it "applyMigrationGroup updates the schema" $ withDB $
-    mapM_ assertTableExists ["stuff", "thang"]
-
-  it "applyMigrationGroup throws if it is already applied" $ withDB $
-    shouldThrow (applyMigrationGroup mode Nothing migrationGroup) $
-      \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
-  it "applyMigrationGroup stores the pitb for all migrations in the group" $ withDB $ do
-    resetMigrations
-
-    let thePitb = "backup-key"
-
-    applicationId <- applyMigrationGroup mode (Just thePitb) migrationGroup
-
-    forM_ (fmap mVersion migrationGroup) $ \version ->
-      pitbToUndoMigration version `shouldReturn` thePitb
-
-  it "oldestMigrationPitb returns only pitb when there is one version" $ withDB $ do
-    resetMigrations
-
-    let thePitb = "backup-key"
-
-    applicationId <- applyMigrationGroup mode (Just thePitb) migrationGroup
-
-    oldestMigrationPitb (fmap mVersion migrationGroup) `shouldReturn` thePitb
-
-  it "oldestMigrationPitb throws if invalid version is used" $ withDB $
-    shouldThrow (oldestMigrationPitb $ pure [utcIso8601| 2008-12-02 |]) $
-      \(e :: MigrationException) -> e == InvalidMigrationVersion [[utcIso8601| 2008-12-02 |]]
-
-
 verifyAuditLog :: DB ()
 verifyAuditLog = do
   columnNames <- map Psql.fromOnly <$> query_ [sql|
@@ -126,22 +68,19 @@ verifyAuditLog = do
 
   let expected =
        [ "id"
-       , "pitb"
        , "created_at"
        ] :: [String]
 
   sort columnNames `shouldBe` sort expected
 
-
 spec :: Spec
 spec = describe "Db" $ do
-  withTestDB $ describe "dev setup" $ do
+  withTestDB $ describe "setup" $ do
     it "getAppliedMigrations fails if db is not setup" $ withDB $
       shouldThrow getAppliedMigrations $ \(e :: Psql.SqlError) -> e == migrationTableMissing
 
-  withTestDB $ describe "dev setup" $ do
-    it "setupDev works" $ withDB $ do
-      setupDev
+    it "setup works" $ withDB $ do
+      setup
 
       verifyAuditLog
 
@@ -164,12 +103,45 @@ spec = describe "Db" $ do
 
       sort columnNames `shouldBe` sort expected
 
-    it "setupDev throws if applied a second time" $ withDB $
-      shouldThrow setupDev $ \(e :: Psql.SqlError) -> e == applicationsAlreadyExists
+    it "setup throws if applied a second time" $ withDB $
+      shouldThrow setup $ \(e :: Psql.SqlError) -> e == applicationsAlreadyExists
 
-    it "insertDevMigration/getDevMigrationRow roundtrips basically" $ withDB $ do
-      applicationId <- createApplication Nothing
-      now <- liftIO getCurrentTime
+    it "getAppliedMigrations returns empty if no migrations" $ withDB $
+        getAppliedMigrations `shouldReturn` []
+
+    it "applyMigration/getAppliedVersions returns the version applied" $ withDB $ do
+      ApplicationRow {..} <- createApplication
+
+      applyMigration arId stuffMigration
+
+      getAppliedMigrations `shouldReturn` [(stuffVersion, hashQuery $ mQuery stuffMigration)]
+
+    it "applyMigration updates the schema" $ withDB $ assertTableExists "stuff"
+
+    it "applyMigration throws if it is already applied" $ withDB $ do
+      ApplicationRow {..} <- createApplication
+
+      shouldThrow (applyMigration arId stuffMigration) $
+        \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+
+    it "applyMigrationGroup applies all the migrations" $ withDB $ do
+      resetMigrations
+
+      ApplicationRow {..}  <- applyMigrationGroup migrationGroup
+
+      getMigrationsInApplication arId `shouldReturn`
+        fmap mVersion migrationGroup
+
+    it "applyMigrationGroup updates the schema" $ withDB $
+      mapM_ assertTableExists ["stuff", "thang"]
+
+    it "applyMigrationGroup throws if it is already applied" $ withDB $
+      shouldThrow (applyMigrationGroup migrationGroup) $
+        \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+
+    it "insertMigration/getMigrationRow roundtrips basically" $ withDB $ do
+      resetMigrations
+      ApplicationRow {..} <- createApplication
 
       let theVersion = [utcIso8601| 2048-12-01 |]
           theName = "initial"
@@ -183,111 +155,52 @@ spec = describe "Db" $ do
           expected = MigrationRow
             { mrVersion = theVersion
             , mrName = theName
-            , mrCreatedAt = now
-            , mrHash = hashMigration initial
-            , mrApplicationId = applicationId
+            , mrCreatedAt = arCreatedAt
+            , mrHash = hashQuery $ mQuery initial
+            , mrApplicationId = arId
             }
 
-      insertDevMigration applicationId initial
+      insertMigration $ toMigrationInput arId initial
 
-      actualRow <- getDevMigrationRow theVersion
+      getMigrationRow theVersion `shouldReturn` expected
 
-      mrVersion actualRow `shouldBe` mrVersion expected
-      mrName actualRow `shouldBe` mrName expected
-      shouldSatisfy (mrCreatedAt actualRow `diffUTCTime` mrCreatedAt expected) (< 100)
-      mrHash actualRow `shouldBe` mrHash expected
-      mrApplicationId actualRow `shouldBe` mrApplicationId expected
-
-      clearMigrations
-
-    sharedSpecs Dev
-
-  withTestDB $ describe "prod setup" $ do
-    it "setupProd works" $ withDB $ do
-      setupProd
-
-      verifyAuditLog
-
-      columnNames <- map Psql.fromOnly <$> query_ [sql|
-          SELECT
-           COLUMN_NAME
-          FROM
-           information_schema.COLUMNS
-          WHERE
-           TABLE_NAME = 'migrations';
-        |]
-
-      let expected =
-           [ "version"
-           , "name"
-           , "created_at"
-           , "application_id"
-           ] :: [String]
-
-      sort columnNames `shouldBe` sort expected
-
-      diffProdSetup `shouldReturn` mempty
-
-    it "setupProd throws if applied a second time" $ withDB $
-      shouldThrow setupProd $ \(e :: Psql.SqlError) -> e == applicationsAlreadyExists
-
-    it "insertProdMigration/getProdMigrationRow roundtrips basically" $ withDB $ do
-      applicationId <- createApplication Nothing
-      now <- liftIO getCurrentTime
-
-      let theVersion = [utcIso8601| 2048-12-01 |]
-          theName = "initial"
-
-          initial = Migration
-            { mVersion = theVersion
-            , mName = theName
-            , mQuery = "hey"
-            }
-
-          expected = ProdMigrationRow
-            { pmrVersion = theVersion
-            , pmrName = theName
-            , pmrCreatedAt = now
-            , pmrApplicationId = applicationId
-            }
-
-      insertProdMigration applicationId initial
-
-      actualRow <- getProdMigrationRow theVersion
-
-      pmrVersion actualRow `shouldBe` pmrVersion expected
-      pmrName actualRow `shouldBe` pmrName expected
-      shouldSatisfy (pmrCreatedAt actualRow `diffUTCTime` pmrCreatedAt expected) (< 100)
-      pmrApplicationId actualRow `shouldBe` pmrApplicationId expected
-
-      clearMigrations
-
-    it "applyMigrationGroup/getAllProdMigrations" $ withDB $ do
-      _ <- applyMigrationGroup Prod Nothing migrationGroup
-      getAllProdMigrations `shouldReturn`
-        [ ProdMigration
-          { pmVersion = [utcIso8601| 2048-12-01 |]
-          , pmName = "stuff"
+    it "applyMigrationGroup/getAllMigrationRows" $ withDB $ do
+      resetMigrations
+      ApplicationRow {..} <- applyMigrationGroup migrationGroup
+      getAllMigrations `shouldReturn`
+        [ MigrationRow
+          { mrVersion = [utcIso8601| 2048-12-01 |]
+          , mrName = "stuff"
+          , mrHash = hashQuery $ mQuery stuffMigration
+          , mrApplicationId = arId
+          , mrCreatedAt = arCreatedAt
           }
-        , ProdMigration
-          { pmVersion = [utcIso8601| 2048-12-02 |]
-          , pmName = "thang"
+        , MigrationRow
+          { mrVersion = [utcIso8601| 2048-12-02 |]
+          , mrName = "thang"
+          , mrHash = hashQuery $ mQuery thangMigration
+          , mrApplicationId = arId
+          , mrCreatedAt = arCreatedAt
           }
         ]
 
-    it "getApplicationRecords also works" $ withDB $ do
-      getAllApplicationRecords `shouldReturn` [ProdApplicationRecord Nothing
-          [ ProdMigration
-            { pmVersion = [utcIso8601| 2048-12-01 |]
-            , pmName = "stuff"
+      -- getAllApplicationRecords works too
+      fmap toList getAllApplicationRecords `shouldReturn` [Application
+        [ MigrationRow
+            { mrVersion = [utcIso8601| 2048-12-01 |]
+            , mrName = "stuff"
+            , mrHash = hashQuery $ mQuery stuffMigration
+            , mrApplicationId = arId
+            , mrCreatedAt = arCreatedAt
             }
-          , ProdMigration
-            { pmVersion = [utcIso8601| 2048-12-02 |]
-            , pmName = "thang"
+          , MigrationRow
+            { mrVersion = [utcIso8601| 2048-12-02 |]
+            , mrName = "thang"
+            , mrHash = hashQuery $ mQuery thangMigration
+            , mrApplicationId = arId
+            , mrCreatedAt = arCreatedAt
             }
           ]
         ]
 
-      resetMigrations
 
-    sharedSpecs Prod

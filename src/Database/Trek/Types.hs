@@ -43,9 +43,6 @@ data MigrationException
 
 instance Exception MigrationException
 
-data Mode = Dev | Qa | Prod
-  deriving(Show, Eq, Ord, Enum, Bounded)
-
 data Migration = Migration
   { mVersion :: Version
   , mName :: Text
@@ -53,5 +50,5 @@ data Migration = Migration
   }
   deriving stock (Show, Eq, Ord, Generic)
 
-hashMigration :: Migration -> Hash
-hashMigration m = BA.copyAndFreeze (hashWith SHA1 $ mQuery m) (const $ pure ())
+hashQuery :: ByteString -> Hash
+hashQuery m = BA.copyAndFreeze (hashWith SHA1 m) (const $ pure ())

@@ -6,6 +6,8 @@ import Control.Concurrent.Async (Async)
 import Control.Concurrent
 import Control.Monad (forever)
 import System.IO.Temp
+import qualified Database.Trek.Db as Db
+import Data.Time.QQ
 
 withTempDir :: String -> SpecWith FilePath -> Spec
 withTempDir name = aroundAll (withSystemTempDirectory name)
@@ -27,3 +29,22 @@ aroundAll withFunc specWith = do
       stop = Async.cancel . snd
 
   beforeAll start $ afterAll stop $ beforeWith (pure . fst) specWith
+
+toTestApplication :: Db.Application -> TestApplication
+toTestApplication = error "toTestApplication"
+
+newtype TestMigrationRow = TestMigrationRow Db.MigrationRow
+  deriving (Show)
+
+instance Eq TestMigrationRow where
+  TestMigrationRow x == TestMigrationRow y =
+    x { Db.mrCreatedAt = [utcIso8601| 2048-12-01 |]} == y { Db.mrCreatedAt = [utcIso8601| 2048-12-01 |] }
+
+
+newtype TestApplication = TestApplication Db.Application
+    deriving (Show)
+
+instance Eq TestApplication where
+  TestApplication x == TestApplication y
+    = map TestMigrationRow (Db.aMigrations x)
+      == map TestMigrationRow (Db.aMigrations y)

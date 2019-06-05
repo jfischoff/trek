@@ -31,10 +31,9 @@ diffToUnappliedMigrations allMigrations appliedMigrations
   $ Set.fromList allMigrations `Set.difference` Set.fromList appliedMigrations
 
 -- First filter by versions that have a hash
-hashConflicts :: [(Version, Hash)] -> [(Version, Maybe Hash)] -> [Version]
+hashConflicts :: [(Version, Hash)] -> [(Version, Hash)] -> [Version]
 hashConflicts newVersions oldVersions =
-  let hashableVersions = mapMaybe (\(x, my) -> (x,) <$> my) oldVersions
-      hashableMap = Map.fromList hashableVersions
+  let hashableMap = Map.fromList oldVersions
       lookupDifferentHash theMap (key, newHash) =
         case Map.lookup key theMap of
           Just existingHash
@@ -43,31 +42,15 @@ hashConflicts newVersions oldVersions =
 
   in mapMaybe (lookupDifferentHash hashableMap) newVersions
 
-hasHashConflict
-  :: [Migration]
-  -> [(Version, Maybe Hash)]
-  -> Bool
-hasHashConflict x = not . null . findAllHashConflicts x
-
-findAllHashConflicts
-  :: [Migration]
-  -> [(Version, Maybe Hash)]
-  -> [Version]
-findAllHashConflicts allMigrations appliedMigrations =
-  hashConflicts (map ((mVersion *** hashMigration) . join (,)) allMigrations) appliedMigrations
-
 setup :: DB ()
-setup = Db.mapSqlError $ Db.setup Qa
-
-diffSetup :: DB Db.SchemaDiff
-diffSetup = Db.diffSetup Prod
+setup = Db.mapSqlError Db.setup
 
 teardown :: DB ()
-teardown = Db.mapSqlError $ Db.teardown
+teardown = Db.mapSqlError Db.teardown
 
 data HashConflict = HashConflict
   { hcConflictingVersions :: [Version]
-  , hcContinuation :: DB ()
+  , hcContinuation :: DB (Maybe Db.ApplicationRow)
   } deriving (Typeable)
 
 instance Show HashConflict where
@@ -77,20 +60,26 @@ instance Show HashConflict where
 
 instance Exception HashConflict
 
-determineMigrationsToApply :: [Migration] -> [(Version, Hash)] -> ([Version], [Migration])
-determineMigrationsToApply = undefined
+differenceMigrationsByVersion :: [Migration] -> [Version] -> [Migration]
+differenceMigrationsByVersion migrations appliedVersions =
+  let versionsToApply = diffToUnappliedMigrations (map mVersion migrations) appliedVersions
+  in filter (\m -> mVersion m `elem` versionsToApply) migrations
+
+migrationsToApply :: [Migration] -> [(Version, Hash)] -> ([Version], [Migration])
+migrationsToApply migrations existingVersions =
+  ( hashConflicts (map ((mVersion *** hashQuery . mQuery) . join (,)) migrations) existingVersions
+  , differenceMigrationsByVersion migrations $ map fst existingVersions
+  )
 
 -- Throws HashConflict
-migrate :: [Migration] -> DB ()
+migrate :: [Migration] -> DB (Maybe Db.ApplicationRow)
 migrate migrations = Db.mapSqlError $ do
   appliedMigrations <- Db.getAppliedMigrations
 
-  let pitb = undefined
-
   let (hashConflicts, unappliedMigrations)
-        = determineMigrationsToApply migrations appliedMigrations
+        = migrationsToApply migrations appliedMigrations
 
-      applier = for_ (NonEmpty.nonEmpty unappliedMigrations) $ Db.applyMigrationGroup Qa pitb
+      applier = forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
 
   unless (null hashConflicts) $ throwM $ HashConflict hashConflicts applier
 
