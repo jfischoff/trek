@@ -5,36 +5,24 @@ import Database.Trek.Types
 import Database.PostgreSQL.Simple.SqlQQ
 import qualified Database.PostgreSQL.Simple as PS
 import qualified Database.PostgreSQL.Simple.Types as PS
-import Database.PostgreSQL.Simple.FromField
-import Database.PostgreSQL.Simple.ToField
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Transact
-import Data.Pool
 import Control.Monad (void)
 import Data.Time
 import Data.Text (Text)
-import Data.ByteString (ByteString)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Control.Monad (unless)
-import Data.Aeson
 import qualified Data.Set as Set
-import Data.Set (Set)
 import Data.Foldable
-import Data.Monoid
 import qualified Data.Map.Strict as Map
 import Data.Map.Strict (Map)
 import Text.InterpolatedString.Perl6
 import Control.Monad.Catch
 import GHC.Generics
-import Control.Concurrent
 import Data.Traversable
 
 newtype Runner = Runner { unRunner :: forall a. DB a -> IO a }
-
-instance FromRow ApplicationId where
-  fromRow = fmap PS.fromOnly $ fromRow
 
 data MigrationInput = MigrationInput
   { miVersion       :: Version
@@ -170,7 +158,7 @@ mapSqlError = handle (throwM . toMigrationException)
 
 setup :: DB ()
 setup = void $ do
-  execute_ createApplicationTable
+  void $ execute_ createApplicationTable
   execute_ createMigrationTable
 
 teardown :: DB ()

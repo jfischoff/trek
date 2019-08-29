@@ -1,6 +1,5 @@
 module Database.Trek.Core where
 
-import Control.Exception
 import Database.PostgreSQL.Transact
 
 import Database.Trek.Types
@@ -11,11 +10,8 @@ import qualified Data.Set as Set
 import Control.Arrow
 import Data.Maybe
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Time
-import Data.List.Split
 import Data.List
 import Control.Monad
-import Data.Foldable (for_)
 import Control.Monad.Catch
 
 -- | The 'HashConflict' is thrown if during a migration an already
@@ -79,17 +75,17 @@ migrationsToApply migrations existingVersions =
   )
 
 -- | The migration function. Returns the migration group application row if
--- any new migrations were applied. 
-migrate :: [Migration] -> DB (Either HashConflict Db.ApplicationRow)
+-- any new migrations were applied.
+migrate :: [Migration] -> DB (Either HashConflict (Maybe Db.ApplicationRow))
 migrate migrations = try $ Db.mapSqlError $ do
   appliedMigrations <- Db.getAppliedMigrations
 
-  let (hashConflicts, unappliedMigrations)
+  let (theHashConflicts, unappliedMigrations)
         = migrationsToApply migrations appliedMigrations
 
       applier = forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
 
-  unless (null hashConflicts) $ throwM $ HashConflict hashConflicts applier
+  unless (null theHashConflicts) $ throwM $ HashConflict theHashConflicts applier
 
   applier
 

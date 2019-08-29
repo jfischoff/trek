@@ -1,13 +1,9 @@
 module Database.Trek.Types where
---import Database.PostgreSQL.Simple.SqlQQ
 import qualified Database.PostgreSQL.Simple as PS
-import qualified Database.PostgreSQL.Simple.Types as PS
-import Database.PostgreSQL.Transact
 import Data.Time
 import Data.Text (Text)
 import Control.Exception
 import Data.Typeable
-import Data.Pool
 import Data.ByteString (ByteString)
 import Crypto.Hash
 import Data.ByteArray as BA
@@ -28,6 +24,9 @@ newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
   deriving stock (Show, Eq, Ord)
   deriving newtype (FromField, ToField)
   deriving (ToRow) via (PS.Only ApplicationId)
+
+instance FromRow ApplicationId where
+  fromRow = fmap PS.fromOnly $ fromRow
 
 data MigrationException
   = NoSetup

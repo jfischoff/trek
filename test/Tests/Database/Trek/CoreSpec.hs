@@ -4,23 +4,24 @@ import Database.Trek.Core
 import Database.Trek.Types
 import Tests.Database.Trek.DbUtils
 import qualified Database.Trek.Db as Db
-import Tests.Database.Trek.TestUtils
+-- import Tests.Database.Trek.TestUtils
 import Data.Foldable
-import Control.Concurrent
-import qualified Database.Postgres.Temp.Internal as Temp
-import qualified Database.PostgreSQL.Simple.Options as PS
-import qualified Database.PostgreSQL.Simple as PS
+-- import Control.Concurrent
+-- import qualified Database.Postgres.Temp.Internal as Temp
+-- import qualified Database.PostgreSQL.Simple.Options as PS
+-- import qualified Database.PostgreSQL.Simple as PS
 import Data.Time.QQ
 import Test.Hspec hiding (shouldBe, shouldThrow, shouldSatisfy, shouldReturn)
 import Test.Hspec.Expectations.MonadThrow
 import Data.Text (Text)
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Char8 as BSC
-import System.Directory
-import System.Process
-import System.Exit
+-- import qualified Data.ByteString.Char8 as BSC
+-- import System.Directory
+-- import System.Process
+-- import System.Exit
 import Data.Maybe
 import Data.List (sort)
+import Control.Monad (void)
 
 stuffVersion :: UTCTime
 stuffVersion = [utcIso8601| 2048-12-01 |]
@@ -104,7 +105,7 @@ spec = describe "Core" $ do
         Db.tableExists "stuff" `shouldReturn` False
         Db.tableExists "thang" `shouldReturn` False
 
-        migrate migrations
+        void $ migrate migrations
 
         Db.tableExists "stuff" `shouldReturn` True
         Db.tableExists "thang" `shouldReturn` True
@@ -115,21 +116,21 @@ spec = describe "Core" $ do
         Db.tableExists "stuff" `shouldReturn` True
         Db.tableExists "thang" `shouldReturn` True
 
-        before <- Db.getAllApplicationRecords
+        theBefore <- Db.getAllApplicationRecords
 
-        migrate migrations `shouldReturn` Nothing
+        fmap (either (error . show) id) (migrate migrations) `shouldReturn` Nothing
 
         Db.tableExists "stuff" `shouldReturn` True
         Db.tableExists "thang" `shouldReturn` True
 
-        Db.getAllApplicationRecords `shouldReturn` before
+        Db.getAllApplicationRecords `shouldReturn` theBefore
 
       it "running runMigration with a new migration and old ones applies the new one" $ withDB $ do
         let migrations = [stuffMigration, thangMigration, fooMigration]
 
-        before <- toList <$> Db.getAllApplicationRecords
+        theBefore <- toList <$> Db.getAllApplicationRecords
 
-        Db.ApplicationRow {..} <- fromMaybe (error "migration failed to apply")
+        Db.ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "foo" `shouldReturn` True
@@ -144,16 +145,16 @@ spec = describe "Core" $ do
                 , mrApplicationId = arId
                 }
               ]
-            : before
+            : theBefore
           )
 
 
       it "running runMigration with just a new migration works" $ withDB $ do
         let migrations = [barMigration]
 
-        before <- toList <$> Db.getAllApplicationRecords
+        theBefore <- toList <$> Db.getAllApplicationRecords
 
-        Db.ApplicationRow {..} <- fromMaybe (error "migration failed to apply")
+        Db.ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "bar" `shouldReturn` True
@@ -168,5 +169,5 @@ spec = describe "Core" $ do
                 , mrApplicationId = arId
                 }
               ]
-          : before
+          : theBefore
           )

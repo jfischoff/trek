@@ -37,6 +37,7 @@ setupDB :: IO (Psql.Connection, Temp.DB)
 setupDB = do
   (connection, db) <- createTempConnection
   let url = Temp.connectionString db
+  print url
   return (connection, db)
 
 withTestDB :: SpecWith (Psql.Connection, Temp.DB) -> Spec

@@ -2,22 +2,16 @@ module Tests.Database.Trek.DbSpec where
 
 import Test.Hspec hiding (shouldBe, shouldThrow, shouldSatisfy, shouldReturn)
 import Test.Hspec.Expectations.MonadThrow
-import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Simple as Psql
 import Control.Monad (void)
-import qualified Data.ByteString.Char8 as BSC
-import Control.Exception
 import Database.PostgreSQL.Transact
 import Database.Trek.Db
 import Database.Trek.Types
 import Database.PostgreSQL.Simple.SqlQQ
 import Data.List (sort)
 import Data.Time.QQ
-import Data.Time
-import Control.Monad.IO.Class
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.List.NonEmpty (NonEmpty)
-import Text.InterpolatedString.Perl6
 import Data.Foldable
 import Tests.Database.Trek.DbUtils
 
