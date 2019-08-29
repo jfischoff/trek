@@ -1,1 +1,1 @@
-1. Need to test HashConflict path for Core.hs
+1. Return the name and hash and version in the list. Need a new public type like HashedMigration

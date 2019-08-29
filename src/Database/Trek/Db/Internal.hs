@@ -24,8 +24,6 @@ import qualified Data.ByteString as BS
 import Crypto.Hash
 import Data.ByteArray as BA
 
-newtype Runner = Runner { unRunner :: forall a. DB a -> IO a }
-
 -------------------------------------------------------------------------------
 -- Public interface
 -------------------------------------------------------------------------------

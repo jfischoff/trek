@@ -177,6 +177,8 @@ spec = describe "Core" $ do
 
         Right Nothing <- migrate migrations
 
+        hashConflicts migrations `shouldReturn` [[utcIso8601| 2048-12-04 |]]
+
         Db.tableExists "barconflict" `shouldReturn` False
 
         fmap (sort . toList) Db.getAllApplicationRecords `shouldReturn` sort theBefore

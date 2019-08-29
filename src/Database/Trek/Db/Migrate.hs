@@ -12,11 +12,11 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Control.Monad
 import Control.Monad.Catch
 
-hashConflicts :: [Migration] -> [(Version, Hash)] -> [Version]
-hashConflicts migrations existingVersions =
+hashConflicts :: [Migration] -> DB [Version]
+hashConflicts migrations =
   hashConflictsInternal
     (map ((mVersion *** Db.hashQuery . mQuery) . join (,)) migrations)
-    existingVersions
+    <$>  Db.listMigrations
 
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
