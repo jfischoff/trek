@@ -98,7 +98,7 @@ spec = describe "Core" $ do
         Db.diffSetup `shouldReturn` mempty
 
       it "throws if run twice" $ withDB $
-        shouldThrow setup $ \SetupRanTwice -> True
+        shouldThrow setup $ \ME_SetupRanTwice -> True
 
       it "teardown removes all the tables" $ withDB $ do
         teardown
@@ -137,7 +137,7 @@ spec = describe "Core" $ do
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        Db.ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
+        ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "foo" `shouldReturn` True
@@ -161,7 +161,7 @@ spec = describe "Core" $ do
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        Db.ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
+        ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "bar" `shouldReturn` True
@@ -184,7 +184,7 @@ spec = describe "Core" $ do
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        HashConflict msg continuation <- either id (error "Should return a HashConflict")
+        ME_HashConflict (HashConflict msg continuation) <- either id (error "Should return a HashConflict")
           <$> migrate migrations
 
         msg `shouldBe` [[utcIso8601| 2048-12-04 |]]
@@ -203,7 +203,7 @@ spec = describe "Core" $ do
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        HashConflict msg _continuation <- either id (error "Should return a HashConflict")
+        ME_HashConflict (HashConflict msg _continuation) <- either id (error "Should return a HashConflict")
           <$> migrate migrations
 
         msg `shouldBe` [[utcIso8601| 2048-12-04 |]]

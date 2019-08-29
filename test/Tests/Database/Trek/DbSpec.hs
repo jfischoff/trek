@@ -116,7 +116,7 @@ spec = describe "Db" $ do
       ApplicationRow {..} <- createApplication
 
       shouldThrow (applyMigration arId stuffMigration) $
-        \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+        \(e :: MigrationException) -> e == ME_MigrationAlreadyApplied stuffVersion
 
     it "applyMigrationGroup applies all the migrations" $ withDB $ do
       resetMigrations
@@ -131,7 +131,7 @@ spec = describe "Db" $ do
 
     it "applyMigrationGroup throws if it is already applied" $ withDB $
       shouldThrow (applyMigrationGroup migrationGroup) $
-        \(e :: MigrationException) -> e == MigrationAlreadyApplied stuffVersion
+        \(e :: MigrationException) -> e == ME_MigrationAlreadyApplied stuffVersion
 
     it "insertMigration/getMigrationRow roundtrips basically" $ withDB $ do
       resetMigrations

@@ -55,11 +55,6 @@ data ApplicationInput = ApplicationInput
   { aiMigrations :: MigrationInput
   } deriving (Show, Eq, Ord, Generic)
 
-data ApplicationRow = ApplicationRow
-  { arId         :: ApplicationId
-  , arCreatedAt  :: UTCTime
-  } deriving stock (Show, Eq, Ord, Generic)
-    deriving anyclass (FromRow)
 
 data Application = Application
   { aMigrations :: [MigrationRow]
@@ -137,21 +132,21 @@ toMigrationException = \case
     , sqlErrorMsg = "relation \"applications\" already exists"
     , sqlErrorDetail = ""
     , sqlErrorHint = ""
-    } -> SetupRanTwice
+    } -> ME_SetupRanTwice
   PS.SqlError
     { sqlState = "42P07"
     , sqlExecStatus = PS.FatalError
     , sqlErrorMsg = "relation \"migrations\" already exists"
-    } -> SetupRanTwice
+    } -> ME_SetupRanTwice
   PS.SqlError
     { sqlExecStatus = PS.FatalError
     , sqlErrorMsg = "relation \"migrations\" does not exist"
-    } -> NoSetup
+    } -> ME_NoSetup
   PS.SqlError
     { sqlExecStatus = PS.FatalError
     , sqlErrorMsg = "relation \"applications\" does not exist"
-    } -> NoSetup
-  x -> UnknownSqlException x
+    } -> ME_NoSetup
+  x -> ME_UnknownSqlException x
 
 mapSqlError :: MonadCatch m => m a -> m a
 mapSqlError = handle (throwM . toMigrationException)
@@ -194,13 +189,13 @@ getMigrationsInApplication applicationId = do
     |] $ PS.Only applicationId
 
   case versions of
-    [] -> throwM $ EmptyApplication applicationId
+    [] -> throwM $ ME_EmptyApplication applicationId
     x : xs -> pure $ x NonEmpty.:| xs
 
 applyMigration :: ApplicationId -> Migration -> DB ()
 applyMigration applicationId migration = do
   migrationHasBeenApplied migration >>= \case
-    True -> throwM $ MigrationAlreadyApplied $ mVersion migration
+    True -> throwM $ ME_MigrationAlreadyApplied $ mVersion migration
     False -> pure ()
 
   void $ execute_ $ PS.Query $  mQuery migration

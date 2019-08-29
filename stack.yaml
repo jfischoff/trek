@@ -45,6 +45,7 @@ packages:
 extra-deps:
 - postgresql-simple-opts-0.3.0.1
 - tmp-postgres-0.2.0.0
+- pg-transact-0.1.2.0
 # - hspec-expectations-monadthrow-0.1.0.0
 
 
