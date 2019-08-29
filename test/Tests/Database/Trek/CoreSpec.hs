@@ -69,6 +69,13 @@ barMigration = Migration
   , mQuery = "CREATE TABLE bar (id SERIAL PRIMARY KEY);"
   }
 
+barConflictMigration :: Migration
+barConflictMigration = Migration
+  { mVersion = [utcIso8601| 2048-12-04 |]
+  , mName = "bar"
+  , mQuery = "CREATE TABLE barconflict (id SERIAL PRIMARY KEY);"
+  }
+
 main :: IO ()
 main = hspec spec
 
@@ -171,3 +178,36 @@ spec = describe "Core" $ do
               ]
           : theBefore
           )
+
+      it "running a migration with a HashConflict throws and continueing does nothing" $ withDB $ do
+        let migrations = [barConflictMigration]
+
+        theBefore <- toList <$> Db.getAllApplicationRecords
+
+        HashConflict msg continuation <- either id (error "Should return a HashConflict")
+          <$> migrate migrations
+
+        msg `shouldBe` [[utcIso8601| 2048-12-04 |]]
+
+        -- continue
+        continuation >>= \case
+          Nothing -> pure ()
+          Just x -> error $ "expected no migrations but got id " ++ show x
+
+        Db.tableExists "barconflict" `shouldReturn` False
+
+        fmap (sort . toList) Db.getAllApplicationRecords `shouldReturn` sort theBefore
+
+      it "running a migration with a HashConflict throws and dropping the continuation is fine" $ withDB $ do
+        let migrations = [barConflictMigration]
+
+        theBefore <- toList <$> Db.getAllApplicationRecords
+
+        HashConflict msg _continuation <- either id (error "Should return a HashConflict")
+          <$> migrate migrations
+
+        msg `shouldBe` [[utcIso8601| 2048-12-04 |]]
+
+        Db.tableExists "barconflict" `shouldReturn` False
+
+        fmap (sort . toList) Db.getAllApplicationRecords `shouldReturn` sort theBefore

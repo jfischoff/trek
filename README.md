@@ -1,6 +1,14 @@
 # trek
 
-`trek` is a database migration system. Unlike most database migration systems `trek` is designed to handle development and QA workflows which could require the same migration is applied twice after a modification. The `trek` production workflow is very similar to other popular migration systems like `Active Migration`.
+## `trek` Core the library
+
+The `trek-core` library provides the base functionality for an migration system.
+
+## `trek` the Executable
+
+`trek` is a database migration system. Unlike most database migration systems `trek` is designed to handle development and QA workflows which reapply the same migration (version) with alter contents.
+
+The `trek` production workflow is very similar to other popular migration systems like `Active Migration`.
 
 The three workflows, `dev`, `qa` and `prod` are described below.
 
@@ -35,7 +43,7 @@ This is feature `trek` shares with other migration systems as well.
 - Audit log of all migrations
 
 ### Other Features Missing
-- Seeding e.g. data loading
+- Configurable Migrations phases Seeding e.g. data loading
 
 
 

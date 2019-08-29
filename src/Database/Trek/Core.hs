@@ -10,7 +10,6 @@ import qualified Data.Set as Set
 import Control.Arrow
 import Data.Maybe
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.List
 import Control.Monad
 import Control.Monad.Catch
 
@@ -39,12 +38,25 @@ setup = Db.mapSqlError Db.setup
 teardown :: DB ()
 teardown = Db.mapSqlError Db.teardown
 
+-- | The migration function. Returns the migration group application row if
+-- any new migrations were applied.
+migrate :: [Migration] -> DB (Either HashConflict (Maybe Db.ApplicationRow))
+migrate migrations = try $ Db.mapSqlError $ do
+  appliedMigrations <- Db.getAppliedMigrations
+
+  let (theHashConflicts, unappliedMigrations)
+        = migrationsToApply migrations appliedMigrations
+
+      applier = forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
+
+  unless (null theHashConflicts) $ throwM $ HashConflict theHashConflicts applier
+
+  applier
+
+
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'
 -------------------------------------------------------------------------------
-filterByVersions :: [Migration] -> [Version] -> [Migration]
-filterByVersions migrations =
-  mapMaybe (\x -> find (\m -> mVersion m == x) migrations)
 
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
@@ -74,18 +86,4 @@ migrationsToApply migrations existingVersions =
   , differenceMigrationsByVersion migrations $ map fst existingVersions
   )
 
--- | The migration function. Returns the migration group application row if
--- any new migrations were applied.
-migrate :: [Migration] -> DB (Either HashConflict (Maybe Db.ApplicationRow))
-migrate migrations = try $ Db.mapSqlError $ do
-  appliedMigrations <- Db.getAppliedMigrations
-
-  let (theHashConflicts, unappliedMigrations)
-        = migrationsToApply migrations appliedMigrations
-
-      applier = forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
-
-  unless (null theHashConflicts) $ throwM $ HashConflict theHashConflicts applier
-
-  applier
 
