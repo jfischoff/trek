@@ -36,26 +36,15 @@ dependencies:
 - base >= 4.7 && < 5
 - postgresql-simple
 - pg-transact
-- tmp-postgres
 - time
 - text
-- postgresql-simple-opts
-- resource-pool
 - bytestring
 - semigroups
 - exceptions
-- time-qq
 - cryptonite
 - memory
 - interpolatedstring-perl6
-- temporary
-- async
-- filepath
-- split
-- directory
 - containers
-- aeson
-- process
 
 library:
   source-dirs: src
@@ -74,6 +63,7 @@ tests:
     - hspec
     - hspec-discover
     - trek
+    - time-qq
     - tmp-postgres
     - hspec-expectations-lifted
     - hspec-expectations-monadthrow

@@ -1,4 +1,4 @@
-module Tests.Database.Trek.DbUtils (withTestDB, withDB, verifyTableExist) where
+module Tests.Database.Trek.DbUtils (withTestDB, withDB, verifyTableExists) where
 
 import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Simple as Psql
