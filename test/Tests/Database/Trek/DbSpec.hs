@@ -104,7 +104,7 @@ spec = describe "Db" $ do
         getAppliedMigrations `shouldReturn` []
 
     it "applyMigration/getAppliedVersions returns the version applied" $ withDB $ do
-      ApplicationRow {..} <- createApplication
+      Application {..} <- createApplication
 
       applyMigration arId stuffMigration
 
@@ -113,7 +113,7 @@ spec = describe "Db" $ do
     it "applyMigration updates the schema" $ withDB $ assertTableExists "stuff"
 
     it "applyMigration throws if it is already applied" $ withDB $ do
-      ApplicationRow {..} <- createApplication
+      Application {..} <- createApplication
 
       shouldThrow (applyMigration arId stuffMigration) $
         \(e :: MigrationException) -> e == ME_MigrationAlreadyApplied stuffVersion
@@ -121,7 +121,7 @@ spec = describe "Db" $ do
     it "applyMigrationGroup applies all the migrations" $ withDB $ do
       resetMigrations
 
-      ApplicationRow {..}  <- applyMigrationGroup migrationGroup
+      Application {..}  <- applyMigrationGroup migrationGroup
 
       getMigrationsInApplication arId `shouldReturn`
         fmap mVersion migrationGroup
@@ -135,7 +135,7 @@ spec = describe "Db" $ do
 
     it "insertMigration/getMigrationRow roundtrips basically" $ withDB $ do
       resetMigrations
-      ApplicationRow {..} <- createApplication
+      Application {..} <- createApplication
 
       let theVersion = [utcIso8601| 2048-12-01 |]
           theName = "initial"
@@ -160,7 +160,7 @@ spec = describe "Db" $ do
 
     it "applyMigrationGroup/getAllMigrationRows" $ withDB $ do
       resetMigrations
-      ApplicationRow {..} <- applyMigrationGroup migrationGroup
+      Application {..} <- applyMigrationGroup migrationGroup
       getAllMigrations `shouldReturn`
         [ MigrationRow
           { mrVersion = [utcIso8601| 2048-12-01 |]

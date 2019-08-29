@@ -28,7 +28,7 @@ newtype ApplicationId = ApplicationId { unApplicationId :: Int64 }
 instance FromRow ApplicationId where
   fromRow = fmap PS.fromOnly $ fromRow
 
-data ApplicationRow = ApplicationRow
+data Application = Application
   { arId         :: ApplicationId
   , arCreatedAt  :: UTCTime
   } deriving stock (Show, Eq, Ord, Generic)

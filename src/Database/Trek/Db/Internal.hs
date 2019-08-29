@@ -44,9 +44,9 @@ getAppliedMigrations = mapSqlError $ query_ [sql|
   ORDER BY created_at ASC
   |]
 
-applyMigrationGroup :: NonEmpty Migration -> DB ApplicationRow
+applyMigrationGroup :: NonEmpty Migration -> DB Application
 applyMigrationGroup migrations = mapSqlError $ do
-  application@ApplicationRow {..} <- createApplication
+  application@Application {..} <- createApplication
   mapM_ (applyMigration arId) migrations
   pure application
 
@@ -97,7 +97,7 @@ getAllApplicationRecords = do
       FROM applications
       ORDER BY created_at
     |]
-  fmap Map.fromList $ forM as $ \ApplicationRow {..} -> do
+  fmap Map.fromList $ forM as $ \Application {..} -> do
     aMigrations <- query [sql|
       SELECT version, name, hash, application_id, created_at
       FROM migrations
@@ -113,7 +113,7 @@ createApplicationTable = [sql|
   );
   |]
 
-createApplication :: DB ApplicationRow
+createApplication :: DB Application
 createApplication = fmap head $ query_ [sql|
   INSERT INTO applications
   DEFAULT VALUES

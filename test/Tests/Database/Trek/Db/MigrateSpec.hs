@@ -129,7 +129,7 @@ spec = describe "Core" $ do
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
+        Application {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "foo" `shouldReturn` True
@@ -147,13 +147,12 @@ spec = describe "Core" $ do
             : theBefore
           )
 
-
       it "running runMigration with just a new migration works" $ withDB $ do
         let migrations = [barMigration]
 
         theBefore <- toList <$> Db.getAllApplicationRecords
 
-        ApplicationRow {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
+        Application {..} <- either (error. show) (fromMaybe (error "migration failed to apply"))
           <$> migrate migrations
 
         Db.tableExists "bar" `shouldReturn` True

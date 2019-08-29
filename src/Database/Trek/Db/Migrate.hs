@@ -18,7 +18,7 @@ hashConflicts migrations existingVersions = hashConflictsInternal (map ((mVersio
 
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
-migrate :: [Migration] -> DB (Either MigrationException (Maybe ApplicationRow))
+migrate :: [Migration] -> DB (Either MigrationException (Maybe Application))
 migrate migrations = try $ Db.mapSqlError $ do
   appliedMigrations <- Db.getAppliedMigrations
 
