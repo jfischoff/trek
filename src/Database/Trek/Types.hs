@@ -5,8 +5,6 @@ import Data.Text (Text)
 import Control.Exception
 import Data.Typeable
 import Data.ByteString (ByteString)
-import Crypto.Hash
-import Data.ByteArray as BA
 import Database.PostgreSQL.Simple.ToRow
 import Database.PostgreSQL.Simple.FromRow
 import Database.PostgreSQL.Simple.FromField
@@ -15,8 +13,6 @@ import GHC.Generics
 import Data.Int
 
 type Version = UTCTime
-
-type PointInTime = String
 
 type Hash = ByteString
 
@@ -55,5 +51,4 @@ data Migration = Migration
   }
   deriving stock (Show, Eq, Ord, Generic)
 
-hashQuery :: ByteString -> Hash
-hashQuery m = BA.copyAndFreeze (hashWith SHA1 m) (const $ pure ())
+

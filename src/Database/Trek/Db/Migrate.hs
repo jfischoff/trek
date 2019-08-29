@@ -12,20 +12,21 @@ import qualified Data.List.NonEmpty as NonEmpty
 import Control.Monad
 import Control.Monad.Catch
 
-
 hashConflicts :: [Migration] -> [(Version, Hash)] -> [Version]
-hashConflicts migrations existingVersions = hashConflictsInternal (map ((mVersion *** hashQuery . mQuery) . join (,)) migrations) existingVersions
+hashConflicts migrations existingVersions =
+  hashConflictsInternal
+    (map ((mVersion *** Db.hashQuery . mQuery) . join (,)) migrations)
+    existingVersions
 
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
 migrate :: [Migration] -> DB (Either MigrationException (Maybe Application))
 migrate migrations = try $ Db.mapSqlError $ do
-  appliedMigrations <- Db.getAppliedMigrations
+  appliedMigrations <- Db.listMigrations
 
   let unappliedMigrations = differenceMigrationsByVersion migrations $ map fst appliedMigrations
 
   forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
-
 
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'

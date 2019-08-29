@@ -20,6 +20,9 @@ import Text.InterpolatedString.Perl6
 import Control.Monad.Catch
 import GHC.Generics
 import Data.Traversable
+import qualified Data.ByteString as BS
+import Crypto.Hash
+import Data.ByteArray as BA
 
 newtype Runner = Runner { unRunner :: forall a. DB a -> IO a }
 
@@ -37,8 +40,8 @@ teardown = mapSqlError $ void $ execute_ [sql|
     DROP TABLE applications;
   |]
 
-getAppliedMigrations :: DB [(Version, Hash)]
-getAppliedMigrations = mapSqlError $ query_ [sql|
+listMigrations :: DB [(Version, Hash)]
+listMigrations = mapSqlError $ query_ [sql|
   SELECT version, hash
   FROM migrations
   ORDER BY created_at ASC
@@ -53,6 +56,9 @@ applyMigrationGroup migrations = mapSqlError $ do
 -------------------------------------------------------------------------------
 -- Internal types for applying migrations
 -------------------------------------------------------------------------------
+
+hashQuery :: BS.ByteString -> Hash
+hashQuery m = BA.copyAndFreeze (hashWith SHA1 m) (const $ pure ())
 
 data MigrationInput = MigrationInput
   { miVersion       :: Version
@@ -193,7 +199,7 @@ applicationsAlreadyExists = PS.SqlError
   }
 
 getAppliedVersions :: DB [Version]
-getAppliedVersions = map fst <$> getAppliedMigrations
+getAppliedVersions = map fst <$> listMigrations
 
 getMigrationsInApplication :: ApplicationId -> DB (NonEmpty Version)
 getMigrationsInApplication applicationId = do

@@ -70,8 +70,8 @@ verifyAuditLog = do
 spec :: Spec
 spec = describe "Db" $ do
   withTestDB $ describe "setup" $ do
-    it "getAppliedMigrations fails if db is not setup" $ withDB $
-      shouldThrow getAppliedMigrations $ \ME_NoSetup -> True
+    it "listMigrations fails if db is not setup" $ withDB $
+      shouldThrow listMigrations $ \ME_NoSetup -> True
 
     it "setup works" $ withDB $ do
       setup
@@ -100,15 +100,15 @@ spec = describe "Db" $ do
     it "setup throws if applied a second time" $ withDB $
       shouldThrow setup $ \ME_SetupRanTwice -> True
 
-    it "getAppliedMigrations returns empty if no migrations" $ withDB $
-        getAppliedMigrations `shouldReturn` []
+    it "listMigrations returns empty if no migrations" $ withDB $
+        listMigrations `shouldReturn` []
 
     it "applyMigration/getAppliedVersions returns the version applied" $ withDB $ do
       Application {..} <- createApplication
 
       applyMigration arId stuffMigration
 
-      getAppliedMigrations `shouldReturn` [(stuffVersion, hashQuery $ mQuery stuffMigration)]
+      listMigrations `shouldReturn` [(stuffVersion, hashQuery $ mQuery stuffMigration)]
 
     it "applyMigration updates the schema" $ withDB $ assertTableExists "stuff"
 
