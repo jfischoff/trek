@@ -179,7 +179,7 @@ spec = describe "Db" $ do
         ]
 
       -- getAllApplicationRecords works too
-      fmap toList getAllApplicationRecords `shouldReturn` [Application
+      fmap toList getAllApplicationRecords `shouldReturn` [ApplicationRecord
         [ MigrationRow
             { mrVersion = [utcIso8601| 2048-12-01 |]
             , mrName = "stuff"

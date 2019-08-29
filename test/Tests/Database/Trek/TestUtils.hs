@@ -30,7 +30,7 @@ aroundAll withFunc specWith = do
 
   beforeAll start $ afterAll stop $ beforeWith (pure . fst) specWith
 
-toTestApplication :: Db.Application -> TestApplication
+toTestApplication :: Db.ApplicationRecord -> TestApplication
 toTestApplication = error "toTestApplication"
 
 newtype TestMigrationRow = TestMigrationRow Db.MigrationRow
@@ -41,7 +41,7 @@ instance Eq TestMigrationRow where
     x { Db.mrCreatedAt = [utcIso8601| 2048-12-01 |]} == y { Db.mrCreatedAt = [utcIso8601| 2048-12-01 |] }
 
 
-newtype TestApplication = TestApplication Db.Application
+newtype TestApplication = TestApplication Db.ApplicationRecord
     deriving (Show)
 
 instance Eq TestApplication where

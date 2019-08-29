@@ -1,9 +1,10 @@
 module Database.Trek.Db
   ( setup
   , teardown
-  , getAppliedMigrations
-  , applyMigrationGroup
+  , migrate
+  , hashConflicts
   )
   where
 import Database.Trek.Db.Internal
+import Database.Trek.Db.Migrate
 
