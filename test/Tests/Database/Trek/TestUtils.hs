@@ -6,7 +6,7 @@ import Control.Concurrent.Async (Async)
 import Control.Concurrent
 import Control.Monad (forever)
 import System.IO.Temp
-import qualified Database.Trek.Db as Db
+import qualified Database.Trek.Db.Internal as Db
 import Data.Time.QQ
 
 withTempDir :: String -> SpecWith FilePath -> Spec

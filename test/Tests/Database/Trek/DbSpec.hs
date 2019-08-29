@@ -5,7 +5,7 @@ import Test.Hspec.Expectations.MonadThrow
 import qualified Database.PostgreSQL.Simple as Psql
 import Control.Monad (void)
 import Database.PostgreSQL.Transact
-import Database.Trek.Db
+import Database.Trek.Db.Internal
 import Database.Trek.Types
 import Database.PostgreSQL.Simple.SqlQQ
 import Data.List (sort)
@@ -71,7 +71,7 @@ spec :: Spec
 spec = describe "Db" $ do
   withTestDB $ describe "setup" $ do
     it "getAppliedMigrations fails if db is not setup" $ withDB $
-      shouldThrow getAppliedMigrations $ \(e :: Psql.SqlError) -> e == migrationTableMissing
+      shouldThrow getAppliedMigrations $ \ME_NoSetup -> True
 
     it "setup works" $ withDB $ do
       setup
@@ -98,7 +98,7 @@ spec = describe "Db" $ do
       sort columnNames `shouldBe` sort expected
 
     it "setup throws if applied a second time" $ withDB $
-      shouldThrow setup $ \(e :: Psql.SqlError) -> e == applicationsAlreadyExists
+      shouldThrow setup $ \ME_SetupRanTwice -> True
 
     it "getAppliedMigrations returns empty if no migrations" $ withDB $
         getAppliedMigrations `shouldReturn` []
