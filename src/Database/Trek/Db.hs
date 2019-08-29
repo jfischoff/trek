@@ -2,9 +2,22 @@ module Database.Trek.Db
   ( setup
   , teardown
   , migrate
-  , hashConflicts
+  , M.hashConflicts
+  -- Queries
+  , listMigrations
+  -- Types
+  , Migration (..)
+  , Version
+  , Hash
+  , MigrationException (..)
   )
   where
 import Database.Trek.Db.Internal
-import Database.Trek.Db.Migrate
+import qualified Database.Trek.Db.Migrate as M
+import Database.Trek.Db.Types
+import Database.PostgreSQL.Transact
+import Data.Maybe (isJust)
 
+
+migrate :: [Migration] -> DB (Either MigrationException Bool)
+migrate = fmap (fmap isJust) . M.migrate

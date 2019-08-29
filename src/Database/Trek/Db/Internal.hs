@@ -1,5 +1,5 @@
 module Database.Trek.Db.Internal where
-import Database.Trek.Types
+import Database.Trek.Db.Types
 
 import Database.PostgreSQL.Simple.SqlQQ
 import qualified Database.PostgreSQL.Simple as PS
@@ -47,8 +47,8 @@ listMigrations = mapSqlError $ query_ [sql|
   ORDER BY created_at ASC
   |]
 
-applyMigrationGroup :: NonEmpty Migration -> DB Application
-applyMigrationGroup migrations = mapSqlError $ do
+applyMigrations :: NonEmpty Migration -> DB Application
+applyMigrations migrations = mapSqlError $ do
   application@Application {..} <- createApplication
   mapM_ (applyMigration arId) migrations
   pure application
@@ -94,7 +94,6 @@ toMigrationInput miApplicationId migration =
         } = migration
       miHash = PS.Binary $ hashQuery theQuery
   in MigrationInput {..}
-
 
 getAllApplicationRecords :: DB (Map ApplicationId ApplicationRecord)
 getAllApplicationRecords = do

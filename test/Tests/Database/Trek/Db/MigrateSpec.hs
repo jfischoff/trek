@@ -2,7 +2,7 @@ module Tests.Database.Trek.Db.MigrateSpec where
 
 import Database.Trek.Db.Migrate
 import Database.Trek.Db.Internal
-import Database.Trek.Types
+import Database.Trek.Db.Types
 import Tests.Database.Trek.DbUtils
 import qualified Database.Trek.Db.Internal as Db
 import Data.Foldable

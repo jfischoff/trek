@@ -1,4 +1,4 @@
-module Database.Trek.Types where
+module Database.Trek.Db.Types where
 import qualified Database.PostgreSQL.Simple as PS
 import Data.Time
 import Data.Text (Text)

@@ -6,7 +6,7 @@ import qualified Database.PostgreSQL.Simple as Psql
 import Control.Monad (void)
 import Database.PostgreSQL.Transact
 import Database.Trek.Db.Internal
-import Database.Trek.Types
+import Database.Trek.Db.Types
 import Database.PostgreSQL.Simple.SqlQQ
 import Data.List (sort)
 import Data.Time.QQ
@@ -118,19 +118,19 @@ spec = describe "Db" $ do
       shouldThrow (applyMigration arId stuffMigration) $
         \(e :: MigrationException) -> e == ME_MigrationAlreadyApplied stuffVersion
 
-    it "applyMigrationGroup applies all the migrations" $ withDB $ do
+    it "applyMigrations applies all the migrations" $ withDB $ do
       resetMigrations
 
-      Application {..}  <- applyMigrationGroup migrationGroup
+      Application {..}  <- applyMigrations migrationGroup
 
       getMigrationsInApplication arId `shouldReturn`
         fmap mVersion migrationGroup
 
-    it "applyMigrationGroup updates the schema" $ withDB $
+    it "applyMigrations updates the schema" $ withDB $
       mapM_ assertTableExists ["stuff", "thang"]
 
-    it "applyMigrationGroup throws if it is already applied" $ withDB $
-      shouldThrow (applyMigrationGroup migrationGroup) $
+    it "applyMigrations throws if it is already applied" $ withDB $
+      shouldThrow (applyMigrations migrationGroup) $
         \(e :: MigrationException) -> e == ME_MigrationAlreadyApplied stuffVersion
 
     it "insertMigration/getMigrationRow roundtrips basically" $ withDB $ do
@@ -158,9 +158,9 @@ spec = describe "Db" $ do
 
       getMigrationRow theVersion `shouldReturn` expected
 
-    it "applyMigrationGroup/getAllMigrationRows" $ withDB $ do
+    it "applyMigrations/getAllMigrationRows" $ withDB $ do
       resetMigrations
-      Application {..} <- applyMigrationGroup migrationGroup
+      Application {..} <- applyMigrations migrationGroup
       getAllMigrations `shouldReturn`
         [ MigrationRow
           { mrVersion = [utcIso8601| 2048-12-01 |]

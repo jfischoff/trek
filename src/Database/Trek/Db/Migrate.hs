@@ -2,7 +2,7 @@ module Database.Trek.Db.Migrate where
 
 import Database.PostgreSQL.Transact
 
-import Database.Trek.Types
+import Database.Trek.Db.Types
 import qualified Database.Trek.Db.Internal as Db
 import qualified Data.Map.Strict as Map
 import qualified Data.Set as Set
@@ -26,7 +26,7 @@ migrate migrations = try $ Db.mapSqlError $ do
 
   let unappliedMigrations = differenceMigrationsByVersion migrations $ map fst appliedMigrations
 
-  forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrationGroup
+  forM (NonEmpty.nonEmpty unappliedMigrations) Db.applyMigrations
 
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'
