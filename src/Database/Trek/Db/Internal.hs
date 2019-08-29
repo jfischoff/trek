@@ -185,16 +185,6 @@ mapSqlError :: MonadCatch m => m a -> m a
 mapSqlError = handle (throwM . toMigrationException)
 
 
-
-applicationsAlreadyExists :: PS.SqlError
-applicationsAlreadyExists = PS.SqlError
-  { sqlState = "42P07"
-  , sqlExecStatus = PS.FatalError
-  , sqlErrorMsg = "relation \"applications\" already exists"
-  , sqlErrorDetail = ""
-  , sqlErrorHint = ""
-  }
-
 getAppliedVersions :: DB [Version]
 getAppliedVersions = map fst <$> listMigrations
 
