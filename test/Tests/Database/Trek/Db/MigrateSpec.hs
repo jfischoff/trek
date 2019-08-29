@@ -1,4 +1,4 @@
-module Tests.Database.Trek.Db.MigrateSpec where
+module Tests.Database.Trek.Db.MigrateSpec (spec, main) where
 
 import Database.Trek.Db.Migrate
 import Database.Trek.Db.Internal

@@ -1,11 +1,13 @@
 module Database.Trek.Db
-  ( setup
+  ( -- * Life cycle management
+    setup
   , teardown
-  , migrate
+    -- * Migration
   , M.hashConflicts
-  -- Queries
+  , migrate
+  -- * Queries
   , listMigrations
-  -- Types
+  -- * Types
   , Migration (..)
   , Version
   , Hash

@@ -1,6 +1,5 @@
-module Tests.Database.Trek.DbUtils where
+module Tests.Database.Trek.DbUtils (withTestDB, withDB, verifyTableExists, withTheTestDb, withTestDBAndDirectory) where
 
-import Tests.Database.Trek.TestUtils
 import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Simple as Psql
 import Control.Monad (void)
@@ -50,8 +49,6 @@ withTestDBAndDirectory :: String -> ((Psql.Connection, Temp.DB, FilePath) -> IO 
 withTestDBAndDirectory name f = withTheTestDb $ \(x, y) ->
   withSystemTempDirectory name $ \filePath -> f (x, y, filePath)
 
-withTestDbAndDirSpec :: String -> SpecWith  (Psql.Connection, Temp.DB, FilePath) -> Spec
-withTestDbAndDirSpec = aroundAll . withTestDBAndDirectory
 
 stopDB :: (Psql.Connection, Temp.DB) -> IO ()
 stopDB (c, x) = void $ Psql.close c >> Temp.stop x

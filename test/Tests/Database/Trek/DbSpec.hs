@@ -1,5 +1,4 @@
-module Tests.Database.Trek.DbSpec where
-
+module Tests.Database.Trek.DbSpec (spec, main) where
 import Test.Hspec hiding (shouldBe, shouldThrow, shouldSatisfy, shouldReturn)
 import Test.Hspec.Expectations.MonadThrow
 import qualified Database.PostgreSQL.Simple as Psql

@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8071b7a5aee1d66efad1c945b7804085e4544470a4017226e2f1fb629929bd30
+-- hash: a23f1755d821a295a9d5db2808e623616dd7d3c08a697d39c95c6630fac3c562
 
 name:           trek
 version:        0.1.0.0
@@ -70,7 +70,6 @@ test-suite test
       Tests.Database.Trek.Db.MigrateSpec
       Tests.Database.Trek.DbSpec
       Tests.Database.Trek.DbUtils
-      Tests.Database.Trek.TestUtils
       Paths_trek
   hs-source-dirs:
       test
