@@ -1,4 +1,4 @@
-module Tests.Database.Trek.DbUtils (withTestDB, withDB, verifyTableExists, withTheTestDb, withTestDBAndDirectory) where
+module Tests.Database.Trek.DbUtils (withTestDB, withDB, verifyTableExist) where
 
 import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Simple as Psql
@@ -7,7 +7,6 @@ import Test.Hspec
 import Database.PostgreSQL.Transact
 import qualified Data.ByteString.Char8 as BSC
 import Control.Exception
-import System.IO.Temp
 import Text.InterpolatedString.Perl6
 
 verifyTableExists :: String -> DB Bool
@@ -41,14 +40,6 @@ setupDB = do
 
 withTestDB :: SpecWith (Psql.Connection, Temp.DB) -> Spec
 withTestDB = beforeAll setupDB . afterAll stopDB
-
-withTheTestDb :: ((Psql.Connection, Temp.DB) -> IO ()) -> IO ()
-withTheTestDb f = bracket setupDB stopDB f
-
-withTestDBAndDirectory :: String -> ((Psql.Connection, Temp.DB, FilePath) -> IO ()) -> IO ()
-withTestDBAndDirectory name f = withTheTestDb $ \(x, y) ->
-  withSystemTempDirectory name $ \filePath -> f (x, y, filePath)
-
 
 stopDB :: (Psql.Connection, Temp.DB) -> IO ()
 stopDB (c, x) = void $ Psql.close c >> Temp.stop x
