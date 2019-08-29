@@ -18,12 +18,37 @@ import Control.Monad
 import Data.Foldable (for_)
 import Control.Monad.Catch
 
+-- | The 'HashConflict' is thrown if during a migration an already
+-- applied migration has been modified. The exception includes a
+-- continuation that can be called to continue the migration
+-- process.
+data HashConflict = HashConflict
+  { hcConflictingVersions :: [Version]
+  , hcContinuation :: DB (Maybe Db.ApplicationRow)
+  } deriving (Typeable)
+
+instance Show HashConflict where
+  show HashConflict {..}
+    =  "Hash conflict with the following versions "
+    ++ unwords (map show hcConflictingVersions)
+
+instance Exception HashConflict
+
+-- | Setup the migration tables
+-- TODO: make the schema configurable
+setup :: DB ()
+setup = Db.mapSqlError Db.setup
+
+-- | Remove the schema tables
+teardown :: DB ()
+teardown = Db.mapSqlError Db.teardown
+
+-------------------------------------------------------------------------------
+-- Helpers for 'migrate'
+-------------------------------------------------------------------------------
 filterByVersions :: [Migration] -> [Version] -> [Migration]
 filterByVersions migrations =
   mapMaybe (\x -> find (\m -> mVersion m == x) migrations)
-
-dateFormat :: String
-dateFormat = iso8601DateFormat (Just "%H-%M-%S")
 
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
@@ -42,24 +67,6 @@ hashConflicts newVersions oldVersions =
 
   in mapMaybe (lookupDifferentHash hashableMap) newVersions
 
-setup :: DB ()
-setup = Db.mapSqlError Db.setup
-
-teardown :: DB ()
-teardown = Db.mapSqlError Db.teardown
-
-data HashConflict = HashConflict
-  { hcConflictingVersions :: [Version]
-  , hcContinuation :: DB (Maybe Db.ApplicationRow)
-  } deriving (Typeable)
-
-instance Show HashConflict where
-  show HashConflict {..}
-    =  "Hash conflict with the following versions "
-    ++ unwords (map show hcConflictingVersions)
-
-instance Exception HashConflict
-
 differenceMigrationsByVersion :: [Migration] -> [Version] -> [Migration]
 differenceMigrationsByVersion migrations appliedVersions =
   let versionsToApply = diffToUnappliedMigrations (map mVersion migrations) appliedVersions
@@ -71,9 +78,10 @@ migrationsToApply migrations existingVersions =
   , differenceMigrationsByVersion migrations $ map fst existingVersions
   )
 
--- Throws HashConflict
-migrate :: [Migration] -> DB (Maybe Db.ApplicationRow)
-migrate migrations = Db.mapSqlError $ do
+-- | The migration function. Returns the migration group application row if
+-- any new migrations were applied. 
+migrate :: [Migration] -> DB (Either HashConflict Db.ApplicationRow)
+migrate migrations = try $ Db.mapSqlError $ do
   appliedMigrations <- Db.getAppliedMigrations
 
   let (hashConflicts, unappliedMigrations)

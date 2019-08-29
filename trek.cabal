@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 4b69677a6806c65f9d74072a9d22fb522464d24c7985019597c27207a434097f
+-- hash: 67c298fe33e443ebe1f019d891e8e2871199d143b40c0c0ff7ab8e5e91e674ab
 
 name:           trek
 version:        0.1.0.0
@@ -36,6 +36,7 @@ library
   hs-source-dirs:
       src
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
+  ghc-options: -Wall
   build-depends:
       aeson
     , async
@@ -60,41 +61,6 @@ library
     , time
     , time-qq
     , tmp-postgres
-  default-language: Haskell2010
-
-executable trek-exe
-  main-is: Main.hs
-  other-modules:
-      Paths_trek
-  hs-source-dirs:
-      app
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall -Werror
-  build-depends:
-      aeson
-    , async
-    , base >=4.7 && <5
-    , bytestring
-    , containers
-    , cryptonite
-    , directory
-    , exceptions
-    , filepath
-    , interpolatedstring-perl6
-    , memory
-    , pg-transact
-    , postgresql-simple
-    , postgresql-simple-opts
-    , process
-    , resource-pool
-    , semigroups
-    , split
-    , temporary
-    , text
-    , time
-    , time-qq
-    , tmp-postgres
-    , trek
   default-language: Haskell2010
 
 test-suite test
@@ -109,7 +75,7 @@ test-suite test
   hs-source-dirs:
       test
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
       aeson
     , async

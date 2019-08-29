@@ -59,19 +59,7 @@ dependencies:
 
 library:
   source-dirs: src
-
-executables:
-  trek-exe:
-    main:                Main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    - -Wall
-    - -Werror
-    dependencies:
-    - trek
+  ghc-options: -Wall
 
 tests:
   test:
@@ -81,6 +69,7 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
     dependencies:
     - hspec
     - hspec-discover
