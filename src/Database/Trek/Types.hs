@@ -13,7 +13,6 @@ import Database.PostgreSQL.Simple.FromField
 import Database.PostgreSQL.Simple.ToField
 import GHC.Generics
 import Data.Int
-import Database.PostgreSQL.Transact
 
 type Version = UTCTime
 
@@ -35,26 +34,6 @@ data ApplicationRow = ApplicationRow
   } deriving stock (Show, Eq, Ord, Generic)
     deriving anyclass (FromRow)
 
-
--- | The 'HashConflict' is thrown if during a migration an already
--- applied migration has been modified. The exception includes a
--- continuation that can be called to continue the migration
--- process.
-data HashConflict = HashConflict
-  { hcConflictingVersions :: [Version]
-  , hcContinuation :: DB (Maybe ApplicationRow)
-  } deriving (Typeable)
-
-instance Show HashConflict where
-  show HashConflict {..}
-    =  "Hash conflict with the following versions "
-    ++ unwords (map show hcConflictingVersions)
-
-instance Eq HashConflict where
-  x == y = hcConflictingVersions x == hcConflictingVersions y -- maybe reallyunsafepointer comparison?
-
-instance Exception HashConflict
-
 data MigrationException
   = ME_NoSetup
   | ME_SetupRanTwice
@@ -65,7 +44,6 @@ data MigrationException
   | ME_InvalidDumpMigrations FilePath String
   | ME_UnsafeApplySchemaOnProd
   | ME_UnknownSqlException PS.SqlError
-  | ME_HashConflict HashConflict
   deriving(Show, Eq, Typeable)
 
 instance Exception MigrationException
