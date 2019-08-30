@@ -51,4 +51,10 @@ data Migration = Migration
   }
   deriving stock (Show, Eq, Ord, Generic)
 
+data HashedMigration = HashedMigration
+  { hmVersion :: Version
+  , hmName :: Text
+  , hmHash :: Hash
+  }
+  deriving stock (Show, Eq, Ord, Generic)
 
