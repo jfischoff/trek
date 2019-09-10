@@ -1,0 +1,44 @@
+signature Database.Trek.Db.Interface where
+
+data Version
+
+data Query
+
+data HashedQuery
+
+data NonEmpty a
+
+data MigrationData
+
+data Migration
+
+data NoSetup
+
+data Time
+
+data HashedMigration
+
+data ApplicationData
+
+data ApplicationGroup
+
+migrationVersion :: Migration -> Version
+query            :: Migration -> Query
+migrationData    :: Migration -> MigrationData
+
+hashedMigrationVersion :: HashedMigration -> Version
+hashedQuery            :: HashedMigration -> HashedQuery
+createdAt              :: HashedMigration -> Time
+hashedMigrationData    :: HashedMigration -> MigrationData
+
+applicationGroupData       :: ApplicationGroup -> ApplicationData
+applicationGroupMigrations :: ApplicationGroup -> NonEmpty HashedMigration
+
+data Db a
+
+setup          ::                                                 Db (Either ()      NoSetup                 )
+-- Requires setup
+teardown       ::                                                 Db (Either NoSetup ()                      )
+migrate        :: ApplicationData      -> NonEmpty [Migration] -> Db (Either NoSetup (Maybe ApplicationGroup))
+listMigrations ::                                                 Db (Either NoSetup [ApplicationGroup]      )
+hashConflicts  :: [Migration]                                  -> Db (Either NoSetup [Version]               )
