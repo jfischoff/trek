@@ -1,0 +1,3 @@
+{-# OPTIONS_GHC -w #-}
+{-# LANGUAGE NoImplicitPrelude #-}
+signature Database.Trek.Db.Interface where

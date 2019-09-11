@@ -1,2 +1,3 @@
 packages: trek-db-interface/
           hspec-expectations-monadthrow/
+          trek-db-spec/

@@ -1,4 +1,7 @@
 signature Database.Trek.Db.Interface where
+import Database.PostgreSQL.Transact (DB)
+import Data.List.NonEmpty (NonEmpty)
+import Database.PostgreSQL.Simple (ToRow, FromRow)
 
 data Version
 
@@ -6,13 +9,13 @@ data Query
 
 data HashedQuery
 
-data NonEmpty a
-
 data MigrationData
 
 data Migration
 
 data NoSetup
+
+data AlreadySetup
 
 data Time
 
@@ -21,6 +24,11 @@ data HashedMigration
 data ApplicationData
 
 data ApplicationGroup
+
+defaultApplicationData :: ApplicationData
+
+instance ToRow   ApplicationData
+instance FromRow ApplicationData
 
 migrationVersion :: Migration -> Version
 query            :: Migration -> Query
@@ -34,11 +42,11 @@ hashedMigrationData    :: HashedMigration -> MigrationData
 applicationGroupData       :: ApplicationGroup -> ApplicationData
 applicationGroupMigrations :: ApplicationGroup -> NonEmpty HashedMigration
 
-data Db a
+applicationGroup :: ApplicationData -> NonEmpty HashedMigration -> ApplicationGroup
 
-setup          ::                                                 Db (Either ()      NoSetup                 )
+setup          ::                                                 DB (Either AlreadySetup NoSetup                 )
 -- Requires setup
-teardown       ::                                                 Db (Either NoSetup ()                      )
-migrate        :: ApplicationData      -> NonEmpty [Migration] -> Db (Either NoSetup (Maybe ApplicationGroup))
-listMigrations ::                                                 Db (Either NoSetup [ApplicationGroup]      )
-hashConflicts  :: [Migration]                                  -> Db (Either NoSetup [Version]               )
+teardown       ::                                                 DB (Either NoSetup      ()                      )
+migrate        :: ApplicationData      -> NonEmpty [Migration] -> DB (Either NoSetup      (Maybe ApplicationGroup))
+listMigrations ::                                                 DB (Either NoSetup      [ApplicationGroup]      )
+hashConflicts  :: [Migration]                                  -> DB (Either NoSetup      [Version]               )

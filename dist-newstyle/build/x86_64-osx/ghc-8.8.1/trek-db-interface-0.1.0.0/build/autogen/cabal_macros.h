@@ -22,6 +22,28 @@
   (major1) == 4 && (major2) == 13 && (minor) <= 0)
 #endif /* MIN_VERSION_base */
 
+/* package pg-transact-0.2.0.1 */
+#ifndef VERSION_pg_transact
+#define VERSION_pg_transact "0.2.0.1"
+#endif /* VERSION_pg_transact */
+#ifndef MIN_VERSION_pg_transact
+#define MIN_VERSION_pg_transact(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  2 || \
+  (major1) == 0 && (major2) == 2 && (minor) <= 0)
+#endif /* MIN_VERSION_pg_transact */
+
+/* package semigroups-0.19.1 */
+#ifndef VERSION_semigroups
+#define VERSION_semigroups "0.19.1"
+#endif /* VERSION_semigroups */
+#ifndef MIN_VERSION_semigroups
+#define MIN_VERSION_semigroups(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  19 || \
+  (major1) == 0 && (major2) == 19 && (minor) <= 1)
+#endif /* MIN_VERSION_semigroups */
+
 /* tool alex-3.2.4 */
 #ifndef TOOL_VERSION_alex
 #define TOOL_VERSION_alex "3.2.4"
