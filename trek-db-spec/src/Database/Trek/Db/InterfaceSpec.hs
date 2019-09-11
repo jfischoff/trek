@@ -1,7 +1,6 @@
 module Database.Trek.Db.InterfaceSpec where
 import Test.Hspec (Spec, it, describe, SpecWith, beforeAll, afterAll, Arg, Example)
 import Control.Monad (void)
-import qualified Data.Aeson as Aeson
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Transact
@@ -14,6 +13,7 @@ import Data.Monoid
 import qualified Database.PostgreSQL.Simple.Options as POptions
 import Data.Foldable
 import Database.Trek.Db.Interface
+import Data.Bifunctor
 
 verifyTableExists :: String -> DB Bool
 verifyTableExists tableName = PS.fromOnly . head <$> query_ [i|
@@ -113,48 +113,47 @@ subsetsOf = error "forSubsetsOf"
 applyAllMigrations :: DBT IO ApplicationGroup
 applyAllMigrations = do
   let (theMigrations, theValidators) = NonEmpty.unzip migrations
-
-  Right (Just appliedMigrations) <- migrate Aeson.Null theMigrations
-  appliedMigrations `shouldBe` applicationGroup Aeson.Null (fmap toHashedMigration theMigrations)
+      unitLeft = fmap (first (const ()))
+      input = applicationGroup theMigrations
+  unitLeft (migrate input) `shouldReturn` Right (Just $ hashApplicationGroup input)
 
   mconcat (toList $ fmap (fmap All) theValidators) `shouldReturn` All True
 
-  pure appliedMigrations
-
-{-
-initialMigrations :: NonEmpty (Migration, DB Bool)
-initialMigrations = error "migrations"
+  pure input
 
 itWithAllMigrations
-  :: Example ((PS.Connection, Temp.DB, Interface) -> IO a)
+  :: Example ((PS.Connection, Temp.DB) -> IO a)
   => String
-  -> (Interface -> ApplicationGroup -> DB a)
-  -> SpecWith (Arg ((PS.Connection, Temp.DB, Interface) -> IO a))
-itWithAllMigrations msg action = itWithSetup msg
-  $ \interface -> applyAllMigrations interface initialMigrations >>= action interface
+  -> (ApplicationGroup -> DB a)
+  -> SpecWith (Arg ((PS.Connection, Temp.DB) -> IO a))
+itWithAllMigrations msg action = itWithSetup msg $
+  applyAllMigrations >>= action
 
 setupTeardownSpecs
-  :: Interface
-  -> SpecWith (PS.Connection, Temp.DB, Interface)
-setupTeardownSpecs Interface {..} = describe "setup teardown" $ do
+  :: SpecWith (PS.Connection, Temp.DB)
+setupTeardownSpecs = describe "setup teardown" $ do
+  let unitEither = fmap (bimap (const ()) (const ()))
+
+  onAClearSchema "setup succeeds on a clean schema" $
+    unitEither setup `shouldReturn` Right ()
+  onAClearSchema "teardown then setup succeeds" $
+    unitEither (teardown >> setup) `shouldReturn` Right ()
+  onAClearSchema "setup then teardown gives" $
+    unitEither (setup >> teardown) `shouldReturn` Right ()
+  onAClearSchema "teardown fails on clean schema" $
+    unitEither teardown `shouldReturn` Left ()
+
   let beforeActions =
         [ ("nothing" , pure () )
-        , ("setup"   , void $ iSetup   )
-        , ("teardown", void $ iTeardown)
+        , ("setup"   , void $ setup   )
+        , ("teardown", void $ teardown)
         ]
+
   forM_ beforeActions $ \(actionName, beforeAction) -> describe ("before " ++ actionName) $ do
-    onAClearSchema "setup succeeds on a clean schema" $ \_ ->
-      iSetup `shouldReturn` DidNotHaveSetup
-    onAClearSchema "teardown then setup succeeds" $ \_ ->
-      (beforeAction >> iTeardown >> iSetup) `shouldReturn` DidNotHaveSetup
-    onAClearSchema "setup projection" $ \_ ->
-      (beforeAction >> iSetup >> iSetup) `shouldReturn` HadSetup
-    onAClearSchema "setup then teardown gives" $ \_ ->
-      (beforeAction >> iSetup >> iTeardown) `shouldReturn` HadSetup
-    onAClearSchema "teardown fails on clean schema" $ \_ ->
-      iTeardown `shouldReturn` DidNotHaveSetup
-    onAClearSchema "teardown projection" $ \_ ->
-      (beforeAction >> iTeardown >> iTeardown) `shouldReturn` DidNotHaveSetup
+    onAClearSchema "setup projection" $
+      unitEither (beforeAction >> setup >> setup) `shouldReturn` Left ()
+    onAClearSchema "teardown projection" $
+      unitEither (beforeAction >> teardown >> teardown) `shouldReturn` Left ()
 
 {-
 assuming: cleanSchema >> setup >> runExcept
@@ -168,10 +167,10 @@ migrate xs >> forall subset xs. migrate subset >> Except listMigrations = pure x
 migrate xs >> forall subset xs. migrate (subset `union` y) >> listMigrations = pure (xs `union` y)
 -}
 
-clearCreatedAt :: ApplicationGroup -> ApplicationGroup
+clearCreatedAt :: HashedApplicationGroup -> HashedApplicationGroup
 clearCreatedAt = error "clearCreatedAt"
 
-
+{-
 migrateSpecs :: NonEmpty (Migration, DB Bool) -> NonEmpty (Migration, DB Bool)-> SpecWith (PS.Connection, Temp.DB, Interface)
 migrateSpecs migrations extraMigrations = describe "migration" $ do
   let expectNoSetup action = do
@@ -186,7 +185,7 @@ migrateSpecs migrations extraMigrations = describe "migration" $ do
           iHashConflicts (toList $ fmap fst migrations) `shouldReturn` Left NoSetup
 
   describe "Clean schema gives NoSetup" $ expectNoSetup (const $ pure ())
-  describe "setup >> teardown gives NoSetup" $ expectNoSetup (\(Interface {..}) -> iSetup >> iTeardown)
+  describe "setup >> teardown gives NoSetup" $ expectNoSetup (\(Interface {..}) -> setup >> teardown)
 
   describe "listMigrations" $ itWithSetup "gives []" $ \(Interface {..}) ->
     iListMigrations `shouldReturn` Right []
