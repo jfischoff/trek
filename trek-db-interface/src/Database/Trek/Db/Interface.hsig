@@ -4,6 +4,10 @@ import Data.List.NonEmpty (NonEmpty)
 
 data Version
 
+instance Show Version
+instance Eq Version
+instance Ord Version
+
 data Query
 
 data HashedQuery
@@ -32,11 +36,14 @@ hashedMigrationVersion :: HashedMigration -> Version
 hashedQuery            :: HashedMigration -> HashedQuery
 createdAt              :: HashedMigration -> Time
 
+-- getMigrations :: ApplicationGroup -> NonEmpty Migration
 getHashMigrations :: HashedApplicationGroup -> NonEmpty HashedMigration
 
 applicationGroup :: NonEmpty Migration -> ApplicationGroup
 
 hashApplicationGroup :: ApplicationGroup -> HashedApplicationGroup
+
+clearCreatedAt :: HashedApplicationGroup -> HashedApplicationGroup
 
 setup          ::                     DB (Either AlreadySetup NoSetup                       )
 -- Requires setup

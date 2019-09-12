@@ -4,7 +4,7 @@ import Control.Monad (void)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Database.PostgreSQL.Transact
-import Test.Hspec.Expectations.MonadThrow (shouldBe, shouldReturn)
+import Test.Hspec.Expectations.MonadThrow (shouldReturn)
 import qualified Database.PostgreSQL.Simple as PS
 import Data.String.Here (i)
 import qualified Database.Postgres.Temp as Temp
@@ -110,10 +110,12 @@ itWithSetup msg = it msg . withSetup
 subsetsOf :: [a] -> [[a]]
 subsetsOf = error "forSubsetsOf"
 
+unitLeft :: Functor f => f (Either a b) -> f (Either () b)
+unitLeft = fmap (first (const ()))
+
 applyAllMigrations :: DBT IO ApplicationGroup
 applyAllMigrations = do
   let (theMigrations, theValidators) = NonEmpty.unzip migrations
-      unitLeft = fmap (first (const ()))
       input = applicationGroup theMigrations
   unitLeft (migrate input) `shouldReturn` Right (Just $ hashApplicationGroup input)
 
@@ -129,11 +131,12 @@ itWithAllMigrations
 itWithAllMigrations msg action = itWithSetup msg $
   applyAllMigrations >>= action
 
+unitEither :: Functor f => f (Either a b) -> f (Either () ())
+unitEither = fmap (bimap (const ()) (const ()))
+
 setupTeardownSpecs
   :: SpecWith (PS.Connection, Temp.DB)
 setupTeardownSpecs = describe "setup teardown" $ do
-  let unitEither = fmap (bimap (const ()) (const ()))
-
   onAClearSchema "setup succeeds on a clean schema" $
     unitEither setup `shouldReturn` Right ()
   onAClearSchema "teardown then setup succeeds" $
@@ -167,72 +170,68 @@ migrate xs >> forall subset xs. migrate subset >> Except listMigrations = pure x
 migrate xs >> forall subset xs. migrate (subset `union` y) >> listMigrations = pure (xs `union` y)
 -}
 
-clearCreatedAt :: HashedApplicationGroup -> HashedApplicationGroup
-clearCreatedAt = error "clearCreatedAt"
+extraMigrations :: NonEmpty (Migration, DB Bool)
+extraMigrations = error "extraMigrations"
 
-{-
-migrateSpecs :: NonEmpty (Migration, DB Bool) -> NonEmpty (Migration, DB Bool)-> SpecWith (PS.Connection, Temp.DB, Interface)
-migrateSpecs migrations extraMigrations = describe "migration" $ do
-  let expectNoSetup action = do
-        onAClearSchema "for migrate" $ \interface@(Interface {..}) -> do
-          void $ action interface
-          iMigrate Aeson.Null (fmap fst migrations) `shouldReturn` Left NoSetup
-        onAClearSchema "for listMigrations" $ \interface@(Interface {..}) -> do
-          void $ action interface
-          iListMigrations `shouldReturn` Left NoSetup
-        onAClearSchema "for hashConflicts with nonempty migrations" $ \interface@(Interface {..}) -> do
-          void $ action interface
-          iHashConflicts (toList $ fmap fst migrations) `shouldReturn` Left NoSetup
+migrateSpecs
+  :: SpecWith (PS.Connection, Temp.DB)
+migrateSpecs = describe "migration" $ do
+  describe "Clean schema gives NoSetup" $ do
+    onAClearSchema "for migrate" $
+      unitEither (migrate $ applicationGroup $ fmap fst migrations) `shouldReturn` Left ()
+    onAClearSchema "for listMigrations" $
+      unitEither listMigrations `shouldReturn` Left ()
+    onAClearSchema "for hashConflicts with nonempty migrations" $
+      unitLeft (hashConflicts (toList $ fmap fst migrations)) `shouldReturn` Left ()
 
-  describe "Clean schema gives NoSetup" $ expectNoSetup (const $ pure ())
-  describe "setup >> teardown gives NoSetup" $ expectNoSetup (\(Interface {..}) -> setup >> teardown)
+  describe "listMigrations" $ itWithSetup "gives []" $
+    unitLeft listMigrations `shouldReturn` Right []
 
-  describe "listMigrations" $ itWithSetup "gives []" $ \(Interface {..}) ->
-    iListMigrations `shouldReturn` Right []
+  let listMigrationsAssert expected =
+        unitLeft (fmap (fmap (fmap clearCreatedAt)) listMigrations)
+          `shouldReturn` Right [clearCreatedAt $ hashApplicationGroup expected]
 
-  itWithAllMigrations "a single migration on a clean setup succeeds" $ \Interface {..} appliedMigration -> do
-    fmap (fmap (fmap clearCreatedAt)) iListMigrations `shouldReturn` Right [clearCreatedAt appliedMigration]
+  itWithAllMigrations "a single migration on a clean setup succeeds" $ listMigrationsAssert
 
   let (theMigrations, _) = unzip $ toList migrations
 
-      verifyUnionWithSubset :: String -> [(Migration, DB Bool)] -> SpecWith (PS.Connection, Temp.DB, Interface)
-      verifyUnionWithSubset msg newList = itWithAllMigrations msg $ \Interface {..} appliedMigration -> do
+      verifyUnionWithSubset :: String -> [(Migration, DB Bool)] -> SpecWith (PS.Connection, Temp.DB)
+      verifyUnionWithSubset msg newList = itWithAllMigrations msg $ \appliedMigration -> do
         case NonEmpty.nonEmpty newList of
           Nothing -> forM_ (subsetsOf theMigrations) $ \subset -> for_ (NonEmpty.nonEmpty subset) $ \neSubset -> rollback $ do
-            iMigrate Aeson.Null neSubset`shouldReturn` Right Nothing
-            iListMigrations `shouldReturn` Right [appliedMigration]
+            unitLeft (migrate (applicationGroup neSubset)) `shouldReturn` Right Nothing
+            listMigrationsAssert appliedMigration
           Just new -> forM_ (subsetsOf theMigrations) $ \subset -> for_ (NonEmpty.nonEmpty subset) $ \neSubset -> rollback $ do
             let (theNewMigrations, theNewValidators) = NonEmpty.unzip new
             -- Should fail for now
-            iMigrate Aeson.Null (neSubset <> theNewMigrations) `shouldReturn` Right Nothing
+            unitLeft (migrate (applicationGroup $ neSubset <> theNewMigrations)) `shouldReturn` Right Nothing
 
             mconcat (toList $ fmap (fmap All) theNewValidators) `shouldReturn` All True
 
             -- Should fail
-            iListMigrations `shouldReturn` Right [appliedMigration]
+            listMigrationsAssert appliedMigration
 
   verifyUnionWithSubset "subsets of the already applied migrations return Nothing and listMigrations returns the same as before" []
 
   verifyUnionWithSubset "subset with union of a new versions return the original plus the new versions" (toList extraMigrations)
 
-hashConflictSpecs
-  :: [Migration]
-  -> [Migration]
-  -> SpecWith (PS.Connection, Temp.DB, Interface)
-hashConflictSpecs conflictingMigrations extraMigrations = do
-  itWithAllMigrations "no hash conflicts on empty" $ \Interface {..} _ ->
-    iHashConflicts conflictingMigrations `shouldReturn` Right []
-  itWithAllMigrations "any subset of the conflictingMigrations union with extraMigrations and the conflicts are only the subset" $ \Interface {..} _ ->
-    forM_ (subsetsOf conflictingMigrations) $ \subset -> do
-      iHashConflicts (subset ++ extraMigrations) `shouldReturn` Right (fmap mVersion subset)
-      iHashConflicts subset `shouldReturn` Right (fmap mVersion subset)
+conflictingMigrations :: [Migration]
+conflictingMigrations = error "conflictingMigrations"
 
-specs :: Interface -> Spec
-specs interface@Interface {..} = describe "Tests.Database.Trek.Db.Interface" $ do
-  -- TODO beforeAll and afterAll with the db and interface
-  setupTeardownSpecs interface
--}
-{-
-  migrateSpecs interface
-  hashConflictSpecs iHashConflicts
--}
+hashConflictSpecs
+  :: SpecWith (PS.Connection, Temp.DB)
+hashConflictSpecs = do
+  itWithAllMigrations "no hash conflicts on empty" $ \_ ->
+    unitLeft (hashConflicts conflictingMigrations) `shouldReturn` Right []
+  itWithAllMigrations "any subset of the conflictingMigrations union with extraMigrations and the conflicts are only the subset" $ \_ -> do
+    forM_ (subsetsOf conflictingMigrations) $ \subset -> do
+      unitLeft (hashConflicts (subset ++ toList (fmap fst extraMigrations)))
+        `shouldReturn` Right (fmap migrationVersion subset)
+      unitLeft (hashConflicts subset)
+        `shouldReturn` Right (fmap migrationVersion subset)
+
+specs :: Spec
+specs = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
+  setupTeardownSpecs
+  migrateSpecs
+  hashConflictSpecs
