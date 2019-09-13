@@ -1,6 +1,7 @@
 signature Database.Trek.Db.Interface where
-import Database.PostgreSQL.Transact (DB)
 import Data.List.NonEmpty (NonEmpty)
+
+data DB
 
 data Version
 
@@ -8,9 +9,7 @@ instance Show Version
 instance Eq Version
 instance Ord Version
 
-data Query
-
-data HashedQuery
+data Hash
 
 data NoSetup
 
@@ -18,36 +17,43 @@ data AlreadySetup
 
 data Time
 
-data Migration
+data InputMigration
 
-data HashedMigration
+data OutputMigration
 
-data ApplicationGroup
+data InputGroup
 
-data HashedApplicationGroup
+data OutputGroup
 
-instance Show HashedApplicationGroup
-instance Eq HashedApplicationGroup
+instance Show OutputGroup
+instance Eq OutputGroup
 
-migrationVersion :: Migration -> Version
-query            :: Migration -> Query
+-- InputMigration constructor
+inputMigration :: Version -> DB () -> Hash -> InputMigration
 
-hashedMigrationVersion :: HashedMigration -> Version
-hashedQuery            :: HashedMigration -> HashedQuery
-createdAt              :: HashedMigration -> Time
+-- InputMigration accessors
+inputVersion   :: InputMigration -> Version
+inputAction    :: InputMigration -> DB ()
 
--- getMigrations :: ApplicationGroup -> NonEmpty Migration
-getHashMigrations :: HashedApplicationGroup -> NonEmpty HashedMigration
+-- OutputMigration accessors
+outputVersion   :: OutputMigration -> Version
+outputHash      :: OutputMigration -> Hash
+outputCreatedAt :: OutputMigration -> Time
 
-applicationGroup :: NonEmpty Migration -> ApplicationGroup
+getInputMigrations  :: InputGroup  -> NonEmpty InputMigration
+getOutputMigrations :: OutputGroup -> NonEmpty OutputMigration
 
-hashApplicationGroup :: ApplicationGroup -> HashedApplicationGroup
+-- InputGroup constructor
+inputGroup      :: NonEmpty InputMigration -> InputGroup
+inputMigrations :: InputGroup              -> NonEmpty InputMigration
 
-clearCreatedAt :: HashedApplicationGroup -> HashedApplicationGroup
+-- For testing
+convertGroup   :: InputGroup  -> OutputGroup
+clearCreatedAt :: OutputGroup -> OutputGroup
 
-setup          ::                     DB (Either AlreadySetup NoSetup                       )
+setup          ::                     DB (Either AlreadySetup ()                 )
 -- Requires setup
-teardown       ::                     DB (Either NoSetup      ()                            )
-migrate        :: ApplicationGroup -> DB (Either NoSetup      (Maybe HashedApplicationGroup))
-listMigrations ::                     DB (Either NoSetup      [HashedApplicationGroup]      )
-hashConflicts  :: [Migration]      -> DB (Either NoSetup      [Version]                     )
+teardown       ::                     DB (Either NoSetup      ()                 )
+migrate        :: ApplicationGroup -> DB (Either NoSetup      (Maybe OutputGroup))
+listMigrations ::                     DB (Either NoSetup      [OutputGroup]      )
+hashConflicts  :: [Migration]      -> DB (Either NoSetup      [Version]          )
