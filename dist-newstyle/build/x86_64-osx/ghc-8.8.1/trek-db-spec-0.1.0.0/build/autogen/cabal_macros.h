@@ -55,39 +55,6 @@
   (major1) == 0 && (major2) == 6 && (minor) <= 2)
 #endif /* MIN_VERSION_containers */
 
-/* package cryptonite-0.26 */
-#ifndef VERSION_cryptonite
-#define VERSION_cryptonite "0.26"
-#endif /* VERSION_cryptonite */
-#ifndef MIN_VERSION_cryptonite
-#define MIN_VERSION_cryptonite(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  26 || \
-  (major1) == 0 && (major2) == 26 && (minor) <= 0)
-#endif /* MIN_VERSION_cryptonite */
-
-/* package exceptions-0.10.3 */
-#ifndef VERSION_exceptions
-#define VERSION_exceptions "0.10.3"
-#endif /* VERSION_exceptions */
-#ifndef MIN_VERSION_exceptions
-#define MIN_VERSION_exceptions(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  10 || \
-  (major1) == 0 && (major2) == 10 && (minor) <= 3)
-#endif /* MIN_VERSION_exceptions */
-
-/* package here-1.2.13 */
-#ifndef VERSION_here
-#define VERSION_here "1.2.13"
-#endif /* VERSION_here */
-#ifndef MIN_VERSION_here
-#define MIN_VERSION_here(major1,major2,minor) (\
-  (major1) <  1 || \
-  (major1) == 1 && (major2) <  2 || \
-  (major1) == 1 && (major2) == 2 && (minor) <= 13)
-#endif /* MIN_VERSION_here */
-
 /* package hspec-2.7.1 */
 #ifndef VERSION_hspec
 #define VERSION_hspec "2.7.1"
@@ -99,60 +66,16 @@
   (major1) == 2 && (major2) == 7 && (minor) <= 1)
 #endif /* MIN_VERSION_hspec */
 
-/* package hspec-expectations-monadthrow-0.1.0.0 */
-#ifndef VERSION_hspec_expectations_monadthrow
-#define VERSION_hspec_expectations_monadthrow "0.1.0.0"
-#endif /* VERSION_hspec_expectations_monadthrow */
-#ifndef MIN_VERSION_hspec_expectations_monadthrow
-#define MIN_VERSION_hspec_expectations_monadthrow(major1,major2,minor) (\
+/* package hspec-expectations-lifted-0.10.0 */
+#ifndef VERSION_hspec_expectations_lifted
+#define VERSION_hspec_expectations_lifted "0.10.0"
+#endif /* VERSION_hspec_expectations_lifted */
+#ifndef MIN_VERSION_hspec_expectations_lifted
+#define MIN_VERSION_hspec_expectations_lifted(major1,major2,minor) (\
   (major1) <  0 || \
-  (major1) == 0 && (major2) <  1 || \
-  (major1) == 0 && (major2) == 1 && (minor) <= 0)
-#endif /* MIN_VERSION_hspec_expectations_monadthrow */
-
-/* package memory-0.15.0 */
-#ifndef VERSION_memory
-#define VERSION_memory "0.15.0"
-#endif /* VERSION_memory */
-#ifndef MIN_VERSION_memory
-#define MIN_VERSION_memory(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  15 || \
-  (major1) == 0 && (major2) == 15 && (minor) <= 0)
-#endif /* MIN_VERSION_memory */
-
-/* package pg-transact-0.2.0.1 */
-#ifndef VERSION_pg_transact
-#define VERSION_pg_transact "0.2.0.1"
-#endif /* VERSION_pg_transact */
-#ifndef MIN_VERSION_pg_transact
-#define MIN_VERSION_pg_transact(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  2 || \
-  (major1) == 0 && (major2) == 2 && (minor) <= 0)
-#endif /* MIN_VERSION_pg_transact */
-
-/* package postgres-options-0.1.0.1 */
-#ifndef VERSION_postgres_options
-#define VERSION_postgres_options "0.1.0.1"
-#endif /* VERSION_postgres_options */
-#ifndef MIN_VERSION_postgres_options
-#define MIN_VERSION_postgres_options(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  1 || \
-  (major1) == 0 && (major2) == 1 && (minor) <= 0)
-#endif /* MIN_VERSION_postgres_options */
-
-/* package postgresql-simple-0.6.2 */
-#ifndef VERSION_postgresql_simple
-#define VERSION_postgresql_simple "0.6.2"
-#endif /* VERSION_postgresql_simple */
-#ifndef MIN_VERSION_postgresql_simple
-#define MIN_VERSION_postgresql_simple(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  6 || \
-  (major1) == 0 && (major2) == 6 && (minor) <= 2)
-#endif /* MIN_VERSION_postgresql_simple */
+  (major1) == 0 && (major2) <  10 || \
+  (major1) == 0 && (major2) == 10 && (minor) <= 0)
+#endif /* MIN_VERSION_hspec_expectations_lifted */
 
 /* package semigroups-0.19.1 */
 #ifndef VERSION_semigroups
@@ -164,50 +87,6 @@
   (major1) == 0 && (major2) <  19 || \
   (major1) == 0 && (major2) == 19 && (minor) <= 1)
 #endif /* MIN_VERSION_semigroups */
-
-/* package text-1.2.4.0 */
-#ifndef VERSION_text
-#define VERSION_text "1.2.4.0"
-#endif /* VERSION_text */
-#ifndef MIN_VERSION_text
-#define MIN_VERSION_text(major1,major2,minor) (\
-  (major1) <  1 || \
-  (major1) == 1 && (major2) <  2 || \
-  (major1) == 1 && (major2) == 2 && (minor) <= 4)
-#endif /* MIN_VERSION_text */
-
-/* package time-1.9.3 */
-#ifndef VERSION_time
-#define VERSION_time "1.9.3"
-#endif /* VERSION_time */
-#ifndef MIN_VERSION_time
-#define MIN_VERSION_time(major1,major2,minor) (\
-  (major1) <  1 || \
-  (major1) == 1 && (major2) <  9 || \
-  (major1) == 1 && (major2) == 9 && (minor) <= 3)
-#endif /* MIN_VERSION_time */
-
-/* package tmp-postgres-0.3.0.1 */
-#ifndef VERSION_tmp_postgres
-#define VERSION_tmp_postgres "0.3.0.1"
-#endif /* VERSION_tmp_postgres */
-#ifndef MIN_VERSION_tmp_postgres
-#define MIN_VERSION_tmp_postgres(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  3 || \
-  (major1) == 0 && (major2) == 3 && (minor) <= 0)
-#endif /* MIN_VERSION_tmp_postgres */
-
-/* package trek-db-interface-0.1.0.0 */
-#ifndef VERSION_trek_db_interface
-#define VERSION_trek_db_interface "0.1.0.0"
-#endif /* VERSION_trek_db_interface */
-#ifndef MIN_VERSION_trek_db_interface
-#define MIN_VERSION_trek_db_interface(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  1 || \
-  (major1) == 0 && (major2) == 1 && (minor) <= 0)
-#endif /* MIN_VERSION_trek_db_interface */
 
 /* tool alex-3.2.4 */
 #ifndef TOOL_VERSION_alex

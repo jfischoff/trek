@@ -1,144 +1,138 @@
 module Database.Trek.Db.InterfaceSpec where
-import Test.Hspec (Spec, it, describe, SpecWith, beforeAll, afterAll, Arg, Example)
+import Test.Hspec.Expectations.Lifted (shouldReturn)
+import Test.Hspec (Arg, Example, Spec, SpecWith, afterAll, beforeAll, describe, it)
 import Control.Monad (void)
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Database.PostgreSQL.Transact
-import Test.Hspec.Expectations.MonadThrow (shouldReturn)
-import qualified Database.PostgreSQL.Simple as PS
-import Data.String.Here (i)
-import qualified Database.Postgres.Temp as Temp
-import Control.Exception
-import Data.Monoid
-import qualified Database.PostgreSQL.Simple.Options as POptions
 import Data.Foldable
 import Database.Trek.Db.TestInterface
+import Database.Trek.Db.TestInterface.Types
 import Data.Bifunctor
+import Data.Maybe
+import Control.Monad (join)
 
--------------------------------------------------------------------------------
--- General db setup that I copy around
--------------------------------------------------------------------------------
-createTempConnection :: IO (PS.Connection, Temp.DB)
-createTempConnection = do
-  db <- either throwIO pure =<< Temp.start Temp.defaultOptions
-  let connString = POptions.toConnectionString $ Temp.options db
-  connection <- PS.connectPostgreSQL connString
-  return (connection, db)
+{-
+Some ideas
+need to make the job runner next
 
--- Either run the job or not
-setupDB :: IO (PS.Connection, Temp.DB)
-setupDB = do
-  (connection, db) <- createTempConnection
-  let url = POptions.toConnectionString $ Temp.options db
-  print url
-  return (connection, db)
+data Job = Job
+  { batch :: LastRow -> DB [Row]
+  , rowKey :: Row -> LastRow
+  , action :: Row -> DB ()
+  }
 
-withTestDB :: SpecWith (PS.Connection, Temp.DB) -> Spec
-withTestDB = beforeAll setupDB . afterAll stopDB
+And the coordinator that can take a migration and turn it into a sequence of
+migrations and jobs followed by code deployments.
 
-stopDB :: (PS.Connection, Temp.DB) -> IO ()
-stopDB (c, x) = void $PS.close c >> Temp.stop x
+These might all be migrators
 
--- this should rollback
-withDB :: DB a -> (PS.Connection, Temp.DB) -> IO a
-withDB x (c, _) = runDBTSerializable x c
--------------------------------------------------------------------------------
--- Verification Helpers
--------------------------------------------------------------------------------
-verifyTableExists :: String -> DB Bool
-verifyTableExists tableName = PS.fromOnly . head <$> query_ [i|
-  SELECT EXISTS (
-  SELECT 1
-  FROM   information_schema.tables
-  WHERE  table_schema = 'public'
-  AND    table_name = '${tableName}'
-  );
-  |]
+The job system is sort of like a migration system that has a status
+The job system updates the migration until it is finished.
+
+The code deployment doesn't push something that is already out there
+
+Every thing is idepotent. It is basically a system for ensure idepotency
+
+but they are idepotent in different ways.
+The migration system does something or not.
+The job is incremental and updates state
+The code deployment is based on the output hash.
+
+Not clear how to have a single interface yet ... if at all.
+
+Animation deep learning dancing music visualizer. If the user is better at
+reinforcing the spectrum they make the visualization go crazy and the AI
+learns
+
+an interesting question is whether the system can handle concurrency. It should
+be able to
+
+A table lock sounds reasonable
+
+Some thoughts about the bigger picture. This is not just a migrator.
+It is a way to store actions to help achieve idempotency. The fact
+that it can do that easily for DB actions is a special case. Because
+we can lift into the DB (or perhaps it should be abstracted to a different
+monad) we can embed arbitrary IO.
+
+In this way the migrator can orchanstrate the steps to a zero down time
+deployment.
+
+-}
+
+type SpecState = SpecStateM DB
 
 -------------------------------------------------------------------------------
 -- Functions that should live somewhere else
 -------------------------------------------------------------------------------
-subsetsOf :: [a] -> [[a]]
-subsetsOf = \case
-  [] -> []
-  x:xs -> map (x:) (subsets xs) ++ subset xs
+nonEmptySubsetsOf :: NonEmpty a -> NonEmpty (NonEmpty a)
+nonEmptySubsetsOf = \case
+  xs@(_ NonEmpty.:| []) -> xs NonEmpty.:| []
+  x NonEmpty.:| y:ys ->
+    let subs = nonEmptySubsetsOf (y NonEmpty.:| ys)
+    in fmap (NonEmpty.cons x) subs <> subs
 
-unitRight :: Functor f => f (Either a b) -> f (Either a b)
-unitRight = fmap (first (const ()))
+nonEmptyPartitionsOf :: NonEmpty a -> NonEmpty (NonEmpty (NonEmpty a))
+nonEmptyPartitionsOf = error "nonEmptyPartitionsOf"
 
--------------------------------------------------------------------------------
--- Test data
--------------------------------------------------------------------------------
-extraMigrationsAndValidations :: NonEmpty (Migration, DB Bool)
-extraMigrationsAndValidations = error "extraMigrations"
+unitRight :: Functor f => f (Either a b) -> f (Either a ())
+unitRight = fmap (second (const ()))
 
-extraMigrations :: NonEmpty Migration
-extraMigrations = fmap fst extraMigrationsAndValidations
-
-extraValidations :: NonEmpty (DB Bool)
-extraValidations = fmap snd extraMigrationsAndValidations
-
-migrationsAndValidations :: NonEmpty (Migration, DBT IO Bool)
-migrationsAndValidations = error "migrations"
-
-migrations :: NonEmpty (Migration, DBT IO Bool)
-migrations = map fst migrationsAndValidations
-
+withTestDB :: SpecWith SpecState -> Spec
+withTestDB = beforeAll dbRunner . afterAll ssShutdown
 -------------------------------------------------------------------------------
 -- Schema clearing
 -------------------------------------------------------------------------------
--- Drop the 'test' schema to reset
-clearSchema :: DB ()
-clearSchema = void $ execute_ [i|
-    DROP SCHEMA IF EXISTS test CASCADE;
-    CREATE SCHEMA test;
-  |]
+withClear :: DB a -> SpecState -> IO a
+withClear action SpecState { ssRunner } = ssRunner (clear >> action)
 
-withClearSchema :: DB a -> (PS.Connection, Temp.DB) -> IO a
-withClearSchema action (conn, db) =  (conn, db)
-
--- A replacement for 'it' that also cleans the schema
+-- A replacement for 'it' that also clears
 clearIt
-  :: Example ((PS.Connection, Temp.DB) -> IO a)
+  :: Example (SpecState -> IO a)
   => String
   -> DB a
   -> SpecWith
-     (Arg ((PS.Connection, Temp.DB) -> IO a))
-clearIt msg = it msg . withClearSchema
-
+     (Arg (SpecState -> IO a))
+clearIt msg = it msg . withClear
 -------------------------------------------------------------------------------
 -- Pre-call setup on the db
 -------------------------------------------------------------------------------
-withSetup :: DB a -> (PS.Connection, Temp.DB) -> IO a
-withSetup action = withClearSchema (setup >> action)
+withSetup :: DB a -> SpecState -> IO a
+withSetup action = withClear (setup >> action)
 
+-- A replacement for 'it' that also clears and calls setup
 setupIt
-  :: Example ((PS.Connection, Temp.DB) -> IO a)
+  :: Example (SpecState -> IO a)
   => String
   -> DB a
-  -> SpecWith (Arg ((PS.Connection, Temp.DB) -> IO a))
+  -> SpecWith (Arg (SpecState -> IO a))
 setupIt msg = it msg . withSetup
-
 -------------------------------------------------------------------------------
 -- Setup the migrations
 -------------------------------------------------------------------------------
-applyAllMigrations :: DBT IO ApplicationGroup
-applyAllMigrations = do
-  let (theMigrations, theValidators) = NonEmpty.unzip migrations
-      input = applicationGroup theMigrations
-  unitLeft (migrate input) `shouldReturn` Right (Just $ hashApplicationGroup input)
+applyAllMigrations :: DB OutputGroup
+applyAllMigrations = fmap (fromMaybe (error "migrations could not be applied") . join) $
+  migrate $ inputGroup migrations
 
-  mconcat (toList $ fmap (fmap All) theValidators) `shouldReturn` All True
-
-  pure input
-
+-- A replacement for 'it' that applies all the migrations
 migrateIt
-  :: Example ((PS.Connection, Temp.DB) -> IO a)
+  :: Example (SpecState -> IO a)
   => String
-  -> (ApplicationGroup -> DB a)
-  -> SpecWith (Arg ((PS.Connection, Temp.DB) -> IO a))
-migrateIt msg action = setupIt msg $
-  applyAllMigrations >>= action
+  -> (OutputGroup -> DB a)
+  -> SpecWith (Arg (SpecState -> IO a))
+migrateIt msg action = setupIt msg $ applyAllMigrations >>= action
+-------------------------------------------------------------------------------
+--
+--                        Preconditions specs
+--
+-- Here we ensure that the test interface is setup correctly.
+--
+-- We need to ensure that 'migrations' and 'extraMigrations' are disjoint
+-- Additionally we need to ensure that 'clear' returns use to the same
+-- 'WorldState'
+-- Additionally 'rollback' and 'runDB' should be such that the world is not
+-- affected.
+-- 'runDB' needs to persist the world.
 
 -------------------------------------------------------------------------------
 --
@@ -170,11 +164,11 @@ migrateIt msg action = setupIt msg $
 --   does not examine them so set them to '()' with unitRight and
 --   unitLeft
 setupTeardownSpecs
-  :: SpecWith (PS.Connection, Temp.DB)
+  :: SpecWith SpecState
 setupTeardownSpecs = describe "setup teardown" $ do
   describe "On a clear schema" $ do
-    clearIt "setup succeeds" $ setup    `shouldReturn` Right ()
-    clearIt "teardown fails" $ teardown `shouldReturn` Left  ()
+    clearIt "setup succeeds" $ setup    `shouldReturn` Just ()
+    clearIt "teardown fails" $ teardown `shouldReturn` Nothing
 
   let beforeActions =
         [ ("nothing" , pure ()      )
@@ -186,16 +180,15 @@ setupTeardownSpecs = describe "setup teardown" $ do
 
     describe "fixpoints" $ do
       clearIt "setup" $
-        action >> setup >> setup       `shouldReturn` Left  ()
+        (action >> setup    >> setup)    `shouldReturn` Nothing
       clearIt "teardown" $
-        action >> teardown >> teardown `shouldReturn` Left  ()
+        (action >> teardown >> teardown) `shouldReturn` Nothing
 
     describe "alternation" $ do
       clearIt "teardown >> setup" $
-        action >> teardown >> setup `shouldReturn` Right ()
+        (action >> teardown >> setup) `shouldReturn` Just ()
       clearIt "setup >> teardown" $
-        action >> setup >> teardown `shouldReturn` Right ()
-
+        (action >> setup >> teardown) `shouldReturn` Just ()
 -------------------------------------------------------------------------------
 --
 --                        setup is required specs
@@ -204,17 +197,15 @@ setupTeardownSpecs = describe "setup teardown" $ do
 -- is called first
 --
 -------------------------------------------------------------------------------
-requireSetupSpecs :: SpecWith (PS.Connection, Temp.DB)
+requireSetupSpecs :: SpecWith SpecState
 requireSetupSpecs = do
-  let  = fmap fst migrations
   describe "Clean schema gives NoSetup for" $ do
     clearIt "migrate" $
-      unitRight (migrate $ applicationGroup justMigrations) `shouldReturn` Left ()
+      migrate (inputGroup migrations) `shouldReturn` Nothing
     clearIt "listMigrations" $
-      unitRight listMigrations `shouldReturn` Left ()
+      listMigrations `shouldReturn` Nothing
     clearIt "hashConflicts with nonempty migrations" $
-      hashConflicts (toList justMigrations) `shouldReturn` Left ()
-
+      hashConflicts (toList migrations) `shouldReturn` Nothing
 -------------------------------------------------------------------------------
 --
 --                        migrate specs
@@ -243,38 +234,33 @@ requireSetupSpecs = do
 -- what else?
 -- if migrate with a nothing does not modify the world
 -------------------------------------------------------------------------------
-migrateListMigrationSpecs :: SpecWith (PS.Connection, Temp.DB)
+migrateListMigrationSpecs :: SpecWith SpecState
 migrateListMigrationSpecs = describe "migration and listMigrations" $ do
-  describe "listMigrations" $ setupIt "gives []" $
-    listMigrations `shouldReturn` Right []
+  setupIt "listMigrations gives []" $ listMigrations `shouldReturn` Just []
 
-  let listMigrationsAssert expected =
-        fmap (fmap (fmap clearCreatedAt)) listMigrations
-          `shouldReturn` Right [clearCreatedAt $ hashApplicationGroup expected]
+  describe "migrate x >>" $ do
+    migrateIt "listMigrations = [x]" $ \a ->
+      listMigrations `shouldReturn` Just [a]
 
-  migrateIt "a single migration on a clean setup succeeds" $ listMigrationsAssert
+    migrateIt "for s ⊆ x. migrate s >> listMigrations = [x]" $ \a ->
+      forM_ (nonEmptySubsetsOf migrations) $ \subset -> do
+        migrate (inputGroup subset) `shouldReturn` Just Nothing
+        listMigrations `shouldReturn` Just [a]
 
-  let (theMigrations, _) = unzip $ toList migrations
+    migrateIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. migrate (s ∪ y)" <>
+      ">> listMigrations = [x, y]") $ \a ->
+        forM_ (nonEmptySubsetsOf extraMigrations) $ \subset -> rollback $ do
+          output <- fromMaybe (error "migrations could not be applied") . join
+            <$> migrate (inputGroup subset)
+          listMigrations `shouldReturn` Just [a, output]
 
-      verifyUnionWithSubset :: String -> [(Migration, DB Bool)] -> SpecWith (PS.Connection, Temp.DB)
-      verifyUnionWithSubset msg newList = migrateIt msg $ \appliedMigration -> do
-        case NonEmpty.nonEmpty newList of
-          Nothing -> forM_ (subsetsOf theMigrations) $ \subset -> for_ (NonEmpty.nonEmpty subset) $ \neSubset -> rollback $ do
-            migrate (applicationGroup neSubset) `shouldReturn` Right Nothing
-            listMigrationsAssert appliedMigration
-          Just new -> forM_ (subsetsOf theMigrations) $ \subset -> for_ (NonEmpty.nonEmpty subset) $ \neSubset -> rollback $ do
-            let (theNewMigrations, theNewValidators) = NonEmpty.unzip new
-            -- Should fail for now
-            migrate (applicationGroup $ neSubset <> theNewMigrations) `shouldReturn` Right Nothing
-
-            mconcat (toList $ fmap (fmap All) theNewValidators) `shouldReturn` All True
-
-            -- Should fail
-            listMigrationsAssert appliedMigration
-
-  verifyUnionWithSubset "subsets of the already applied migrations return Nothing and listMigrations returns the same as before" []
-
-  verifyUnionWithSubset "subset with union of a new versions return the original plus the new versions" (toList extraMigrations)
+  describe "actions are preserved during migration" $ it "all partitions run the same" $ \SpecState {ssRunner} ->
+    forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
+      expectedWorldState <- mapM_ (ssRunner . sequenceA_ . fmap inputAction) parts >> ssRunner worldState
+      ssRunner clear
+      ssRunner
+        (mapM_ (migrate . inputGroup) parts >> worldState) `shouldReturn`
+          expectedWorldState
 -------------------------------------------------------------------------------
 --
 --                        hashConflict spec
@@ -284,16 +270,15 @@ migrateListMigrationSpecs = describe "migration and listMigrations" $ do
 -- hashConflicts x = Right []
 -- migrate x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x
 -------------------------------------------------------------------------------
-hashConflictSpecs
-  :: SpecWith (PS.Connection, Temp.DB)
+hashConflictSpecs :: SpecWith SpecState
 hashConflictSpecs = do
   setupIt "hashConflicts [] = Right []" $
-    hashConflict [] `shouldReturn` Right []
+    hashConflicts [] `shouldReturn` Just []
   setupIt "On a clear schema hashConflicts x = Right []" $
-    hashConflict migrations `shouldReturn` Right []
+    hashConflicts (toList migrations) `shouldReturn` Just []
   migrateIt "migrate x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x" $ \_ -> do
     hashConflicts (toList $ migrations <> extraMigrations)
-      `shouldReturn` Right (fmap migrationVersion migrations)
+      `shouldReturn` Just (toList $ fmap inputVersion migrations)
 
 specs :: Spec
 specs = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do

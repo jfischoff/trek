@@ -25,31 +25,25 @@ source-repository head
   type: git
   location: https://github.com/githubuser/trek
 
+
+
 library
   exposed-modules:
       Database.Trek.Db.InterfaceSpec
+      Database.Trek.Db.TestInterface.Types
+  signatures:
+      Database.Trek.Db.TestInterface
   hs-source-dirs:
       src
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
+  default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
   ghc-options: -Wall
   build-depends:
       aeson
     , base >=4.7 && <5
     , bytestring
     , containers
-    , cryptonite
-    , exceptions
     , hspec
-    , hspec-expectations-monadthrow
-    , memory
-    , pg-transact >= 0.2.0.1
-    , postgresql-simple
+    , hspec-expectations-lifted
     , semigroups
-    , text
-    , time
-    , tmp-postgres
-    , here
-    , postgres-options
-    , trek-db-interface
   default-language: Haskell2010
 
