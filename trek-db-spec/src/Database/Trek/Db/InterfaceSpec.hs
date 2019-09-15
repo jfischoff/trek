@@ -280,8 +280,8 @@ hashConflictSpecs = do
     hashConflicts (toList $ migrations <> extraMigrations)
       `shouldReturn` Just (toList $ fmap inputVersion migrations)
 
-specs :: Spec
-specs = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
+spec :: Spec
+spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
   setupTeardownSpecs
   requireSetupSpecs
   migrateListMigrationSpecs

@@ -11,17 +11,6 @@
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
 #endif /* MIN_VERSION_trek_db_spec */
 
-/* package aeson-1.4.4.0 */
-#ifndef VERSION_aeson
-#define VERSION_aeson "1.4.4.0"
-#endif /* VERSION_aeson */
-#ifndef MIN_VERSION_aeson
-#define MIN_VERSION_aeson(major1,major2,minor) (\
-  (major1) <  1 || \
-  (major1) == 1 && (major2) <  4 || \
-  (major1) == 1 && (major2) == 4 && (minor) <= 4)
-#endif /* MIN_VERSION_aeson */
-
 /* package base-4.13.0.0 */
 #ifndef VERSION_base
 #define VERSION_base "4.13.0.0"
@@ -32,17 +21,6 @@
   (major1) == 4 && (major2) <  13 || \
   (major1) == 4 && (major2) == 13 && (minor) <= 0)
 #endif /* MIN_VERSION_base */
-
-/* package bytestring-0.10.9.0 */
-#ifndef VERSION_bytestring
-#define VERSION_bytestring "0.10.9.0"
-#endif /* VERSION_bytestring */
-#ifndef MIN_VERSION_bytestring
-#define MIN_VERSION_bytestring(major1,major2,minor) (\
-  (major1) <  0 || \
-  (major1) == 0 && (major2) <  10 || \
-  (major1) == 0 && (major2) == 10 && (minor) <= 9)
-#endif /* MIN_VERSION_bytestring */
 
 /* package containers-0.6.2.1 */
 #ifndef VERSION_containers
