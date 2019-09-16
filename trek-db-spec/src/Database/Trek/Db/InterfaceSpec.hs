@@ -10,6 +10,8 @@ import Data.Maybe
 import Control.Monad (join)
 
 {-
+TOOD I need to make a negative implementation that is somewhat reasonable.
+
 Some ideas
 need to make the job runner next
 

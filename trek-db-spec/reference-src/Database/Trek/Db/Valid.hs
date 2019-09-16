@@ -1,4 +1,4 @@
-module Database.Trek.Db.Reference where
+module Database.Trek.Db.Valid where
 import Database.Trek.Db.TestInterface.Types
 import Control.Monad.State
 import Data.List.NonEmpty (NonEmpty, fromList, nonEmpty)
