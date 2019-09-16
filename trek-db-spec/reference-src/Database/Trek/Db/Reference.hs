@@ -30,7 +30,7 @@ inputGroup = id
 type OutputGroup = NonEmpty Version
 
 add :: Int -> DB ()
-add = error "add"
+add i = modify (\x -> x { isCounter = isCounter x + i })
 
 extraMigrations :: NonEmpty InputMigration
 extraMigrations = pure $ InputMigration (add 6) 6 6
@@ -99,8 +99,6 @@ listApplications = do
 
 hashConflicts :: [InputMigration] -> DB (Maybe [Version])
 hashConflicts [] = pure $ Just []
-hashConflicts _ = error "hashConflicts"
-{-
 hashConflicts xs = do
   WorldState {isVersions, isSetup} <- get
   if not isSetup
@@ -108,6 +106,7 @@ hashConflicts xs = do
     else do
       let allVersions = flattenVersions isVersions
           theTest InputMigration {..} =
-            if
+            case lookup inputVersion allVersions of
+              Nothing -> False
+              Just theHash -> theHash /= inputHash
       pure $ Just $ map inputVersion $ filter theTest xs
--}
