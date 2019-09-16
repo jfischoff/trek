@@ -66,6 +66,17 @@
   (major1) == 0 && (major2) == 19 && (minor) <= 1)
 #endif /* MIN_VERSION_semigroups */
 
+/* package trek-db-spec-0.1.0.0 */
+#ifndef VERSION_trek_db_spec
+#define VERSION_trek_db_spec "0.1.0.0"
+#endif /* VERSION_trek_db_spec */
+#ifndef MIN_VERSION_trek_db_spec
+#define MIN_VERSION_trek_db_spec(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  1 || \
+  (major1) == 0 && (major2) == 1 && (minor) <= 0)
+#endif /* MIN_VERSION_trek_db_spec */
+
 /* tool alex-3.2.4 */
 #ifndef TOOL_VERSION_alex
 #define TOOL_VERSION_alex "3.2.4"

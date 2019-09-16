@@ -112,15 +112,15 @@ setupIt msg = it msg . withSetup
 -------------------------------------------------------------------------------
 applyAllMigrations :: DB OutputGroup
 applyAllMigrations = fmap (fromMaybe (error "migrations could not be applied") . join) $
-  migrate $ inputGroup migrations
+  apply $ inputGroup migrations
 
 -- A replacement for 'it' that applies all the migrations
-migrateIt
+applyIt
   :: Example (SpecState -> IO a)
   => String
   -> (OutputGroup -> DB a)
   -> SpecWith (Arg (SpecState -> IO a))
-migrateIt msg action = setupIt msg $ applyAllMigrations >>= action
+applyIt msg action = setupIt msg $ applyAllMigrations >>= action
 -------------------------------------------------------------------------------
 --
 --                        Preconditions specs
@@ -193,33 +193,33 @@ setupTeardownSpecs = describe "setup teardown" $ do
 --
 --                        setup is required specs
 --
--- teardown, migrate, listMigrations, hashConflicts all require that setup
+-- teardown, apply, listApplication, hashConflicts all require that setup
 -- is called first
 --
 -------------------------------------------------------------------------------
 requireSetupSpecs :: SpecWith SpecState
 requireSetupSpecs = do
   describe "Clean schema gives NoSetup for" $ do
-    clearIt "migrate" $
-      migrate (inputGroup migrations) `shouldReturn` Nothing
-    clearIt "listMigrations" $
-      listMigrations `shouldReturn` Nothing
+    clearIt "apply" $
+      apply (inputGroup migrations) `shouldReturn` Nothing
+    clearIt "listApplication" $
+      listApplications `shouldReturn` Nothing
     clearIt "hashConflicts with nonempty migrations" $
       hashConflicts (toList migrations) `shouldReturn` Nothing
 -------------------------------------------------------------------------------
 --
---                        migrate specs
+--                        apply specs
 --
 -- All assume a clear schema
 --
--- migrate x >> listMigrations = [x]
--- migrate x >> for s ⊆ x. migrate s >> listMigrations = [x]
--- migrate x >> for s ⊆ x and y st. z = y / x and z ≠ ∅.
---   migrate (s ∪ y) >> listMigrations = [x, y]
+-- apply x >> listApplication = [x]
+-- apply x >> for s ⊆ x. apply s >> listApplication = [x]
+-- apply x >> for s ⊆ x and y st. z = y / x and z ≠ ∅.
+--   apply (s ∪ y) >> listApplication = [x, y]
 --
 -- in addition
 -- for all partitions of [[[InputMigration]]] of an InputGroup
--- apply all the sub groups in the partition through `migrate` is equivalent to any
+-- apply all the sub groups in the partition through `apply` is equivalent to any
 -- apply the actions directly
 
 -- equivalent in the sense that one must provide a way represent the state of the world
@@ -232,34 +232,34 @@ requireSetupSpecs = do
 -- in between
 --
 -- what else?
--- if migrate with a nothing does not modify the world
+-- if apply with a nothing does not modify the world
 -------------------------------------------------------------------------------
-migrateListMigrationSpecs :: SpecWith SpecState
-migrateListMigrationSpecs = describe "migration and listMigrations" $ do
-  setupIt "listMigrations gives []" $ listMigrations `shouldReturn` Just []
+applyListMigrationSpecs :: SpecWith SpecState
+applyListMigrationSpecs = describe "migration and listApplication" $ do
+  setupIt "listApplication gives []" $ listApplications `shouldReturn` Just []
 
-  describe "migrate x >>" $ do
-    migrateIt "listMigrations = [x]" $ \a ->
-      listMigrations `shouldReturn` Just [a]
+  describe "apply x >>" $ do
+    applyIt "listApplication = [x]" $ \a ->
+      listApplications `shouldReturn` Just [a]
 
-    migrateIt "for s ⊆ x. migrate s >> listMigrations = [x]" $ \a ->
+    applyIt "for s ⊆ x. apply s >> listApplication = [x]" $ \a ->
       forM_ (nonEmptySubsetsOf migrations) $ \subset -> do
-        migrate (inputGroup subset) `shouldReturn` Just Nothing
-        listMigrations `shouldReturn` Just [a]
+        apply (inputGroup subset) `shouldReturn` Just Nothing
+        listApplications `shouldReturn` Just [a]
 
-    migrateIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. migrate (s ∪ y)" <>
-      ">> listMigrations = [x, y]") $ \a ->
+    applyIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. apply (s ∪ y)" <>
+      ">> listApplication = [x, y]") $ \a ->
         forM_ (nonEmptySubsetsOf extraMigrations) $ \subset -> rollback $ do
           output <- fromMaybe (error "migrations could not be applied") . join
-            <$> migrate (inputGroup subset)
-          listMigrations `shouldReturn` Just [a, output]
+            <$> apply (inputGroup subset)
+          listApplications `shouldReturn` Just [a, output]
 
   describe "actions are preserved during migration" $ it "all partitions run the same" $ \SpecState {ssRunner} ->
     forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
       expectedWorldState <- mapM_ (ssRunner . sequenceA_ . fmap inputAction) parts >> ssRunner worldState
       ssRunner clear
       ssRunner
-        (mapM_ (migrate . inputGroup) parts >> worldState) `shouldReturn`
+        (mapM_ (apply . inputGroup) parts >> worldState) `shouldReturn`
           expectedWorldState
 -------------------------------------------------------------------------------
 --
@@ -268,7 +268,7 @@ migrateListMigrationSpecs = describe "migration and listMigrations" $ do
 -- hashConflicts [] = Right []
 -- On a clean schema
 -- hashConflicts x = Right []
--- migrate x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x
+-- apply x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x
 -------------------------------------------------------------------------------
 hashConflictSpecs :: SpecWith SpecState
 hashConflictSpecs = do
@@ -276,13 +276,13 @@ hashConflictSpecs = do
     hashConflicts [] `shouldReturn` Just []
   setupIt "On a clear schema hashConflicts x = Right []" $
     hashConflicts (toList migrations) `shouldReturn` Just []
-  migrateIt "migrate x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x" $ \_ -> do
-    hashConflicts (toList $ migrations <> extraMigrations)
+  applyIt "apply x >> st. y and x are disjoint. hashConflicts (x ∪ y) = Right x" $ \_ -> do
+    hashConflicts (toList $ conflictingMigrations)
       `shouldReturn` Just (toList $ fmap inputVersion migrations)
 
 spec :: Spec
 spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
   setupTeardownSpecs
   requireSetupSpecs
-  migrateListMigrationSpecs
+  applyListMigrationSpecs
   hashConflictSpecs
