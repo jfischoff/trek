@@ -36,7 +36,6 @@ library
   ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
-    , containers
     , hspec
     , hspec-expectations-lifted
     , semigroups
