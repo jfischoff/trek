@@ -2,12 +2,10 @@ module Database.Trek.Db.InterfaceSpec where
 import Test.Hspec.Expectations.Lifted (shouldReturn)
 import Test.Hspec (Arg, Example, Spec, SpecWith, afterAll, beforeAll, describe, it)
 import Control.Monad (void)
-import Data.List.NonEmpty (NonEmpty)
-import qualified Data.List.NonEmpty as NonEmpty
+import Data.List.NonEmpty (NonEmpty(..), fromList, cons)
 import Data.Foldable
 import Database.Trek.Db.TestInterface
 import Database.Trek.Db.TestInterface.Types
-import Data.Bifunctor
 import Data.Maybe
 import Control.Monad (join)
 
@@ -65,19 +63,24 @@ type SpecState = SpecStateM DB
 -------------------------------------------------------------------------------
 -- Functions that should live somewhere else
 -------------------------------------------------------------------------------
+-- This is sequential subsets!
 nonEmptySubsetsOf :: NonEmpty a -> NonEmpty (NonEmpty a)
 nonEmptySubsetsOf = \case
-  xs@(_ NonEmpty.:| []) -> xs NonEmpty.:| []
-  x NonEmpty.:| y:ys ->
-    let subs = nonEmptySubsetsOf (y NonEmpty.:| ys)
-    in fmap (NonEmpty.cons x) subs <> subs
+  xs@(_ :| []) -> xs :| []
+  x :| y:ys ->
+    let subs = nonEmptySubsetsOf (y :| ys)
+    in fmap (cons x) subs <> subs
 
 nonEmptyPartitionsOf :: NonEmpty a -> NonEmpty (NonEmpty (NonEmpty a))
-nonEmptyPartitionsOf = error "nonEmptyPartitionsOf"
+nonEmptyPartitionsOf = fromList . fmap fromList . fmap (fmap fromList) . partitions . toList
 
-unitRight :: Functor f => f (Either a b) -> f (Either a ())
-unitRight = fmap (second (const ()))
-
+partitions :: [a] -> [[[a]]]
+partitions [] = [[]]
+partitions (x:xs) = [[x]:p | p <- partitions xs]
+                  ++ [(x:ys):yss | (ys:yss) <- partitions xs]
+-------------------------------------------------------------------------------
+-- Hspec helper
+-------------------------------------------------------------------------------
 withTestDB :: SpecWith SpecState -> Spec
 withTestDB = beforeAll dbRunner . afterAll ssShutdown
 -------------------------------------------------------------------------------
@@ -159,10 +162,6 @@ applyIt msg action = setupIt msg $ applyAllMigrations >>= action
 -- Additionally all functions but 'setup', require that 'setup' is called first
 -- to not get a 'Left'
 -------------------------------------------------------------------------------
-
--- | The interface includes error types but the spec
---   does not examine them so set them to '()' with unitRight and
---   unitLeft
 setupTeardownSpecs
   :: SpecWith SpecState
 setupTeardownSpecs = describe "setup teardown" $ do
