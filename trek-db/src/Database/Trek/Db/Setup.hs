@@ -21,7 +21,7 @@ import GHC.Generics
 import Data.Traversable
 import qualified Data.ByteString as BS
 
-
+-- TODO make this use Either
 -------------------------------------------------------------------------------
 -- Public interface
 -------------------------------------------------------------------------------
