@@ -1,7 +1,7 @@
 signature Database.Trek.Db.Interface where
 import Data.List.NonEmpty (NonEmpty)
 
-data DB
+data DB a
 
 data Version
 
@@ -51,9 +51,9 @@ inputMigrations :: InputGroup              -> NonEmpty InputMigration
 convertGroup   :: InputGroup  -> OutputGroup
 clearCreatedAt :: OutputGroup -> OutputGroup
 
-setup          ::                     DB (Either AlreadySetup ()                 )
+setup          ::                    DB (Either AlreadySetup ()                 )
 -- Requires setup
-teardown       ::                     DB (Either NoSetup      ()                 )
-migrate        :: ApplicationGroup -> DB (Either NoSetup      (Maybe OutputGroup))
-listMigrations ::                     DB (Either NoSetup      [OutputGroup]      )
-hashConflicts  :: [Migration]      -> DB (Either NoSetup      [Version]          )
+teardown       ::                    DB (Either NoSetup      ()                 )
+migrate        :: InputGroup      -> DB (Either NoSetup      (Maybe OutputGroup))
+listMigrations ::                    DB (Either NoSetup      [OutputGroup]      )
+hashConflicts  :: [InputMigration]-> DB (Either NoSetup      [Version]          )
