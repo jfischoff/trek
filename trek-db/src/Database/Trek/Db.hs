@@ -3,27 +3,75 @@ module Database.Trek.Db
     setup
   , teardown
     -- * Migration
-  , M.hashConflicts
+  , hashConflicts
   , migrate
   -- * Queriesi
   , listMigrations
   -- * Types
-  , Migration (..)
+  , InputMigration (..)
   , Version
   , Hash
-  , MigrationException (..)
-  , HashMigration
+  , DB
+  , NoSetup(..)
+  , AlreadySetup (..)
+  , OutputGroup (..)
+  , InputGroup (..)
+  , inputMigration
+  , inputGroup
+  , Time
   )
   where
-import Database.Trek.Db.Internal
-import qualified Database.Trek.Db.Migrate as M
-import Database.Trek.Db.Types
-import Database.PostgreSQL.Transact
-import Data.Maybe (isJust)
+import Database.PostgreSQL.Transact(DB)
+import Data.List.NonEmpty (NonEmpty)
+import Data.Time (UTCTime)
+import Data.ByteString (ByteString)
 
-migrate :: [Migration] -> DB (Either NoSetup MigrationResult)
-migrate = fmap (fmap isJust) . M.migrate
 
-setup :: DB SetupResult
+type Version = UTCTime
+
+type Hash = ByteString
+
+data NoSetup = NoSetup
+
+data AlreadySetup = AlreadySetup
+
+type Time = UTCTime
+
+data InputMigration = InputMigration
+  { inputAction :: DB ()
+  , inputVersion :: Version
+  , inputHash :: Hash
+  }
+
+type GroupId = Int
+
+data OutputGroup = OutputGroup GroupId
+  deriving (Show, Eq)
+
+data InputGroup = InputGroup
+  { inputGroupMigrations :: NonEmpty InputMigration
+  }
+
+-- InputMigration constructor
+inputMigration :: DB () -> Version -> Hash -> InputMigration
+inputMigration = InputMigration
+
+-- InputGroup constructor
+inputGroup :: NonEmpty InputMigration -> InputGroup
+inputGroup = InputGroup
+
+setup :: DB (Either AlreadySetup ())
+setup = pure $ Right ()
+
+-- Requires setup
 teardown :: DB (Either NoSetup ())
-listMigrations :: DB (Either NoSetup [HashedMigration])
+teardown = pure $ Right ()
+
+migrate :: InputGroup -> DB (Either NoSetup (Maybe OutputGroup))
+migrate _ = pure $ pure Nothing
+
+listMigrations :: DB (Either NoSetup [OutputGroup])
+listMigrations = pure $ pure []
+
+hashConflicts  :: [InputMigration]-> DB (Either NoSetup [Version])
+hashConflicts _ = pure $ pure []

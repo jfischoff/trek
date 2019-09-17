@@ -1,4 +1,4 @@
-cabal-version: 1.12
+cabal-version: 2.0
 
 -- This file has been generated from package.yaml by hpack version 0.31.1.
 --
@@ -6,7 +6,7 @@ cabal-version: 1.12
 --
 -- hash: ab7f58e2ba372fd8cc72dcb41598085a170ea1109e6522551fd9f2b2d1fd5bde
 
-name:           trek
+name:           trek-db
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
 homepage:       https://github.com/githubuser/trek#readme
@@ -28,12 +28,6 @@ source-repository head
 library
   exposed-modules:
       Database.Trek.Db
-      Database.Trek.Db.Base
-      Database.Trek.Db.Migrate
-      Database.Trek.Db.MigrationException
-      Database.Trek.Db.Setup
-  other-modules:
-      Paths_trek
   hs-source-dirs:
       src
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
@@ -44,7 +38,7 @@ library
     , containers
     , cryptonite
     , exceptions
-    , interpolatedstring-perl6
+    , here
     , memory
     , pg-transact
     , postgresql-simple
@@ -56,12 +50,6 @@ library
 test-suite test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
-  other-modules:
-      Tests.Database.Difference
-      Tests.Database.Trek.Db.MigrateSpec
-      Tests.Database.Trek.DbSpec
-      Tests.Database.Trek.DbUtils
-      Paths_trek
   hs-source-dirs:
       test
   default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
@@ -76,7 +64,7 @@ test-suite test
     , hspec-discover
     , hspec-expectations-lifted
     , hspec-expectations-monadthrow
-    , interpolatedstring-perl6
+    , here
     , memory
     , pg-transact
     , postgresql-simple
@@ -85,5 +73,7 @@ test-suite test
     , time
     , time-qq
     , tmp-postgres
-    , trek
+    , trek-db
+    , trek-db-interface
   default-language: Haskell2010
+  mixins: trek-db-interface requires (Database.Trek.Db.Interface as Database.Trek.Db)

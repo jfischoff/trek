@@ -19,8 +19,6 @@ data Time
 
 data InputMigration
 
-data OutputMigration
-
 data InputGroup
 
 data OutputGroup
@@ -29,27 +27,12 @@ instance Show OutputGroup
 instance Eq OutputGroup
 
 -- InputMigration constructor
-inputMigration :: Version -> DB () -> Hash -> InputMigration
+inputMigration ::  DB () -> Version -> Hash -> InputMigration
 
--- InputMigration accessors
-inputVersion   :: InputMigration -> Version
-inputAction    :: InputMigration -> DB ()
-
--- OutputMigration accessors
-outputVersion   :: OutputMigration -> Version
-outputHash      :: OutputMigration -> Hash
-outputCreatedAt :: OutputMigration -> Time
-
-getInputMigrations  :: InputGroup  -> NonEmpty InputMigration
-getOutputMigrations :: OutputGroup -> NonEmpty OutputMigration
 
 -- InputGroup constructor
 inputGroup      :: NonEmpty InputMigration -> InputGroup
-inputMigrations :: InputGroup              -> NonEmpty InputMigration
 
--- For testing
-convertGroup   :: InputGroup  -> OutputGroup
-clearCreatedAt :: OutputGroup -> OutputGroup
 
 setup          ::                    DB (Either AlreadySetup ()                 )
 -- Requires setup

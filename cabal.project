@@ -2,3 +2,4 @@ packages: trek-db-interface/
           hspec-expectations-monadthrow/
           trek-db-spec/
           trek-db-to-test-interface/
+          trek-db/
