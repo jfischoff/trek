@@ -28,7 +28,7 @@ instance Eq OutputGroup
 inputGroup :: NonEmpty InputMigration -> InputGroup
 
 -- Main API
-setup          ::                    DB (Maybe ())
+setup            ::                    DB (Maybe ())
 -- Requires setup
 teardown         ::                    DB (Maybe ())
 apply            :: InputGroup      -> DB (Maybe (Maybe OutputGroup))

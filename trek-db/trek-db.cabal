@@ -75,5 +75,8 @@ test-suite test
     , tmp-postgres
     , trek-db
     , trek-db-interface
+    , trek-db-spec
+    , trek-db-to-test-interface
   default-language: Haskell2010
   mixins: trek-db-interface requires (Database.Trek.Db.Interface as Database.Trek.Db)
+--        , trek-db-to-test-interface requires (Database.Trek.Db.Interface as Database.Trek.Db)

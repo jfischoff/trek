@@ -1,4 +1,4 @@
-signature Database.Trek.Db.ToTestInterface
+module Database.Trek.Db.ToTestInterface
   ( setup
   , teardown
   , apply
