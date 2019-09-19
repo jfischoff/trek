@@ -16,6 +16,7 @@ initialWorldState = WorldState [] False 0
 type DB = StateT WorldState IO
 
 type Version = Int
+
 data InputMigration = InputMigration
   { inputAction :: DB ()
   , inputVersion :: Version
@@ -28,37 +29,6 @@ inputGroup :: NonEmpty InputMigration -> InputGroup
 inputGroup = id
 
 type OutputGroup = NonEmpty Version
-
-add :: Int -> DB ()
-add i = modify (\x -> x { isCounter = isCounter x + i })
-
-extraMigrations :: NonEmpty InputMigration
-extraMigrations = pure $ InputMigration (add 6) 6 6
-
-migrations :: NonEmpty InputMigration
-migrations = fromList $ map (\x -> InputMigration (add x) x x) $ [1 .. 5]
-
-conflictingMigrations :: NonEmpty InputMigration
-conflictingMigrations = fromList $ map (\x -> InputMigration (add x) x $ x + 1) $ [1 .. 5]
-
-worldState :: DB WorldState
-worldState = get
-
-clear :: DB ()
-clear = put initialWorldState
-
-rollback :: DB a -> DB a
-rollback action = do
-  oldState <- get
-  r <- action
-  put oldState
-  pure r
-
-dbRunner :: IO (SpecStateM DB)
-dbRunner = pure $ SpecState
-  { ssRunner   = flip evalStateT initialWorldState
-  , ssShutdown = pure ()
-  }
 
 setup :: DB (Maybe ())
 setup = gets isSetup >>= \case

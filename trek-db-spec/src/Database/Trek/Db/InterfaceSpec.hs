@@ -4,6 +4,7 @@ import Test.Hspec (Arg, Example, Spec, SpecWith, afterAll, beforeAll, describe, 
 import Control.Monad (void)
 import Data.List.NonEmpty (NonEmpty(..), fromList, cons)
 import Data.Foldable
+import Database.Trek.Db.Interface
 import Database.Trek.Db.TestInterface
 import Database.Trek.Db.TestInterface.Types
 import Data.Maybe

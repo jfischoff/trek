@@ -1,2 +1,2 @@
-module Tests.Database.Trek.Db.InterfaceSpecSpec (spec) where
+module Tests.Database.Trek.DbSpec (spec) where
 import Database.Trek.Db.InterfaceSpec (spec)

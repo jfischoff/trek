@@ -4,9 +4,9 @@ cabal-version: 2.0
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 30259827f63da5564d48795177b79a07c95b14a4aff92bcdfee614691981a6bf
+-- hash: ab7f58e2ba372fd8cc72dcb41598085a170ea1109e6522551fd9f2b2d1fd5bde
 
-name:           trek-db-to-test-interface
+name:           trek-db-test-types
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
 homepage:       https://github.com/githubuser/trek#readme
@@ -17,22 +17,15 @@ copyright:      2019 Jonathan Fischoff
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
-    ChangeLog.md
 
 source-repository head
   type: git
   location: https://github.com/githubuser/trek
 
 library
-  exposed-modules: Database.Trek.Db.ToTestInterface
+  default-language: Haskell2010
+  exposed-modules: Database.Trek.Db.TestInterface.Types
   hs-source-dirs: src
+  default-extensions: RankNTypes
   ghc-options: -Wall
   build-depends: base
-               , pg-transact
-               , semigroups
-               , trek-db-interface
-  default-language: Haskell2010
-
-

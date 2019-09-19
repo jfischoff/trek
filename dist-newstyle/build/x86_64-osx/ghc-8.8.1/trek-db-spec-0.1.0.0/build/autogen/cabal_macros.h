@@ -55,16 +55,27 @@
   (major1) == 0 && (major2) == 19 && (minor) <= 1)
 #endif /* MIN_VERSION_semigroups */
 
-/* package trek-db-spec-0.1.0.0 */
-#ifndef VERSION_trek_db_spec
-#define VERSION_trek_db_spec "0.1.0.0"
-#endif /* VERSION_trek_db_spec */
-#ifndef MIN_VERSION_trek_db_spec
-#define MIN_VERSION_trek_db_spec(major1,major2,minor) (\
+/* package trek-db-test-types-0.1.0.0 */
+#ifndef VERSION_trek_db_test_types
+#define VERSION_trek_db_test_types "0.1.0.0"
+#endif /* VERSION_trek_db_test_types */
+#ifndef MIN_VERSION_trek_db_test_types
+#define MIN_VERSION_trek_db_test_types(major1,major2,minor) (\
   (major1) <  0 || \
   (major1) == 0 && (major2) <  1 || \
   (major1) == 0 && (major2) == 1 && (minor) <= 0)
-#endif /* MIN_VERSION_trek_db_spec */
+#endif /* MIN_VERSION_trek_db_test_types */
+
+/* package trek-db-interface-0.1.0.0 */
+#ifndef VERSION_trek_db_interface
+#define VERSION_trek_db_interface "0.1.0.0"
+#endif /* VERSION_trek_db_interface */
+#ifndef MIN_VERSION_trek_db_interface
+#define MIN_VERSION_trek_db_interface(major1,major2,minor) (\
+  (major1) <  0 || \
+  (major1) == 0 && (major2) <  1 || \
+  (major1) == 0 && (major2) == 1 && (minor) <= 0)
+#endif /* MIN_VERSION_trek_db_interface */
 
 /* tool alex-3.2.4 */
 #ifndef TOOL_VERSION_alex

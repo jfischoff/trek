@@ -1,39 +1,7 @@
 signature Database.Trek.Db.TestInterface where
 import Data.List.NonEmpty (NonEmpty)
 import Database.Trek.Db.TestInterface.Types
-import Control.Monad.IO.Class
-
-data DB a
-
-instance Functor DB
-instance Applicative DB
-instance Monad DB
-instance MonadIO DB
-
-data Version
-
-instance Show Version
-instance Eq Version
-instance Ord Version
-
-data InputMigration
-
-data InputGroup
-
-data OutputGroup
-
-instance Show OutputGroup
-instance Eq OutputGroup
-
-inputGroup :: NonEmpty InputMigration -> InputGroup
-
--- Main API
-setup            ::                    DB (Maybe ())
--- Requires setup
-teardown         ::                    DB (Maybe ())
-apply            :: InputGroup      -> DB (Maybe (Maybe OutputGroup))
-listApplications ::                    DB (Maybe [OutputGroup])
-hashConflicts    :: [InputMigration]-> DB (Maybe [Version])
+import Database.Trek.Db.Interface
 
 data WorldState
 

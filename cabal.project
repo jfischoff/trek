@@ -1,5 +1,5 @@
-packages: trek-db-interface/
+packages: trek-db-test-types/
+          trek-db-interface/
           hspec-expectations-monadthrow/
           trek-db-spec/
-          trek-db-to-test-interface/
           trek-db/

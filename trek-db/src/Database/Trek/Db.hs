@@ -4,9 +4,9 @@ module Database.Trek.Db
   , teardown
     -- * Migration
   , hashConflicts
-  , migrate
+  , apply
   -- * Queriesi
-  , listMigrations
+  , listApplications
   -- * Types
   , InputMigration (..)
   , Version
@@ -60,18 +60,18 @@ inputMigration = InputMigration
 inputGroup :: NonEmpty InputMigration -> InputGroup
 inputGroup = InputGroup
 
-setup :: DB (Either AlreadySetup ())
-setup = pure $ Right ()
+setup :: DB (Maybe ())
+setup = pure $ pure ()
 
 -- Requires setup
-teardown :: DB (Either NoSetup ())
-teardown = pure $ Right ()
+teardown :: DB (Maybe ())
+teardown = pure $ pure ()
 
-migrate :: InputGroup -> DB (Either NoSetup (Maybe OutputGroup))
-migrate _ = pure $ pure Nothing
+apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
+apply _ = pure $ pure Nothing
 
-listMigrations :: DB (Either NoSetup [OutputGroup])
-listMigrations = pure $ pure []
+listApplications :: DB (Maybe [OutputGroup])
+listApplications = pure $ pure []
 
-hashConflicts  :: [InputMigration]-> DB (Either NoSetup [Version])
+hashConflicts  :: [InputMigration]-> DB (Maybe [Version])
 hashConflicts _ = pure $ pure []
