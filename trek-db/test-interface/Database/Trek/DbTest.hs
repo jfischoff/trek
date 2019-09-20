@@ -22,6 +22,7 @@ import Data.Time.QQ
 import qualified Database.Postgres.Temp.Internal as Temp
 import qualified Database.PostgreSQL.Transact as T
 import qualified Database.PostgreSQL.Simple as Psql
+import Database.PostgreSQL.Simple.SqlQQ
 import qualified Data.ByteString.Char8 as BSC
 import Control.Exception
 import Control.Monad (void)
@@ -41,7 +42,9 @@ worldState :: DB WorldState
 worldState = pure ""
 
 clear :: DB ()
-clear = pure ()
+clear = void $ T.execute_ [sql|
+  DROP SCHEMA IF EXISTS meta CASCADE;
+  CREATE SCHEMA meta; |]
 
 rollback :: DB a -> DB a
 rollback = id

@@ -1,2 +1,2 @@
-1. Return the name and hash and version in the list. Need a new public type like HashedMigration
-1. Abstract the monad so it can be a non transaction monad
+1. Make TestInterfaceSpec that makes sure the migrations conflict and the extras do not
+1. Abstract running of the action monad so it can be a non transaction monad or IO
