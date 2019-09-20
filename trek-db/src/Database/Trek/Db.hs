@@ -129,10 +129,10 @@ teardown = withSetup $ void $ execute_ [sql|
   |]
 
 apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
-apply _ = pure $ pure Nothing
+apply _ = withSetup $ pure Nothing
 
 listApplications :: DB (Maybe [OutputGroup])
-listApplications = pure $ pure []
+listApplications = withSetup $ pure []
 
 hashConflicts  :: [InputMigration]-> DB (Maybe [Version])
-hashConflicts _ = pure $ pure []
+hashConflicts _ = withSetup $ pure []
