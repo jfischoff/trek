@@ -30,6 +30,7 @@ import qualified Database.PostgreSQL.Simple as Psql
 import qualified Database.PostgreSQL.Simple.FromField as Psql
 import qualified Database.PostgreSQL.Simple.ToField as Psql
 import qualified Database.PostgreSQL.Simple.ToRow as Psql
+import qualified Database.PostgreSQL.Simple.FromRow as Psql
 import qualified Database.PostgreSQL.Simple.Types as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import Data.String.Here.Interpolated (i)
@@ -66,6 +67,10 @@ newtype GroupId = GroupId Int
     deriving stock (Show, Eq, Ord, Generic)
     deriving newtype (Psql.FromField, Psql.ToField)
     deriving (Psql.ToRow) via (Psql.Only GroupId)
+
+instance Psql.FromRow GroupId where
+  fromRow = GroupId <$> Psql.field
+
 
 data OutputGroup = OutputGroup
   { ogId :: GroupId
@@ -174,6 +179,14 @@ hashConflicts migrations =
     (map ((inputVersion *** inputHash) . join (,)) migrations) . outputGroupsToVersions)
     <$> listApplications
 
+getOutputGroup :: GroupId -> DB OutputGroup
+getOutputGroup aId = do
+  outputMigrations <- NonEmpty.fromList <$> query [sql|
+    SELECT version, hash, application_id, created_at
+    FROM actions
+    WHERE application_id = ?
+  |] aId
+  pure $ OutputGroup aId outputMigrations
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
 apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
@@ -183,14 +196,9 @@ apply migrations = withMetaSchema $ do
     let unappliedMigrations = differenceMigrationsByVersion
           (toList $ inputGroupMigrations migrations) $ map fst $ outputGroupsToVersions  appliedMigrations
 
-    forM (NonEmpty.nonEmpty unappliedMigrations) $ \ms -> do
+    forM (nonEmpty unappliedMigrations) $ \ms -> do
       ApplicationRow {..} <- applyMigrations ms
-      outputMigrations <- NonEmpty.fromList <$> query [sql|
-          SELECT version, hash, application_id, created_at
-          FROM actions
-          WHERE application_id = ?
-        |] arId
-      pure $ OutputGroup arId outputMigrations
+      getOutputGroup arId
 
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'
@@ -262,4 +270,7 @@ insertMigration groupId migration = void $ execute
   |] (migration Psql.:. groupId)
 
 listApplications :: DB (Maybe [OutputGroup])
-listApplications = withSetup $ pure []
+listApplications = withSetup $ do
+  as <- query_ [sql| SELECT id FROM applications |]
+  forM as getOutputGroup
+
