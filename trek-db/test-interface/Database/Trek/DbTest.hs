@@ -16,7 +16,6 @@ module Database.Trek.DbTest
   ) where
 import Database.Trek.Db
 import Database.Trek.Db.TestInterface.Types
-import Data.ByteString (ByteString)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Time.QQ
 import qualified Database.Postgres.Temp.Internal as Temp
@@ -25,21 +24,32 @@ import qualified Database.PostgreSQL.Simple as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import qualified Data.ByteString.Char8 as BSC
 import Control.Exception
+import Data.Text (Text)
 import Control.Monad (void)
 
-type WorldState = ByteString
+type WorldState = [Text]
+
+createFoo :: DB ()
+createFoo = void $ T.execute_ [sql| CREATE TABLE foo ()|]
+
+createBar :: DB ()
+createBar = void $ T.execute_ [sql| CREATE TABLE bar ()|]
+
+createBar1 :: DB ()
+createBar1 = void $ T.execute_ [sql| CREATE TABLE bar (id text)|]
 
 extraMigrations :: NonEmpty InputMigration
-extraMigrations = pure $ InputMigration (pure ()) [utcIso8601| 2048-12-01 |] "extra"
+extraMigrations = pure $ InputMigration createFoo [utcIso8601| 2048-12-01 |] "extra"
 
 migrations :: NonEmpty InputMigration
-migrations = pure $ InputMigration (pure ()) [utcIso8601| 2025-12-01 |] "migration"
+migrations = pure $ InputMigration createBar [utcIso8601| 2025-12-01 |] "migration"
 
 conflictingMigrations :: NonEmpty InputMigration
-conflictingMigrations = pure $ InputMigration (pure ()) [utcIso8601| 2025-12-01 |] "conflicting"
+conflictingMigrations = pure $ InputMigration createBar1 [utcIso8601| 2025-12-01 |] "conflicting"
 
 worldState :: DB WorldState
-worldState = pure ""
+worldState = fmap Psql.fromOnly <$> T.query_
+  "SELECT table_name FROM information_schema.tables where table_schema = 'public'"
 
 clear :: DB ()
 clear = void $ T.execute_ [sql|
@@ -47,7 +57,7 @@ clear = void $ T.execute_ [sql|
   CREATE SCHEMA meta; |]
 
 rollback :: DB a -> DB a
-rollback = id
+rollback = T.rollback
 --
 
 createTempConnection :: IO (Psql.Connection, Temp.DB)
