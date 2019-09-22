@@ -30,7 +30,7 @@ library
       Database.Trek.Db
   hs-source-dirs:
       src
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
+  default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
@@ -52,7 +52,7 @@ library db-test-interface
       Database.Trek.DbTest
   hs-source-dirs:
       test-interface
-  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
+  default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   ghc-options: -Wall
   build-depends: base, trek-db, trek-db-test-types, semigroups, bytestring, time-qq
     , pg-transact
