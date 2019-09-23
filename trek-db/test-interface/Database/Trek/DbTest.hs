@@ -61,8 +61,12 @@ conflictingMigrations = NonEmpty.fromList
   ]
 
 worldState :: DB WorldState
-worldState = fmap Psql.fromOnly <$> T.query_
-  "SELECT table_name FROM information_schema.tables where table_schema = 'test'"
+worldState = do
+  xs <- fmap Psql.fromOnly <$> T.query_
+    "SELECT table_name FROM information_schema.tables where table_schema = 'test'"
+  ys <- fmap Psql.fromOnly <$> T.query_
+    "SELECT table_name FROM information_schema.tables where table_schema = 'meta'"
+  pure $ xs ++ ys
 
 clear :: DB ()
 clear = void $ T.execute_ [sql|
