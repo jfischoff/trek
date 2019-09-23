@@ -69,10 +69,10 @@ newtype GroupId = GroupId Int
 instance Psql.FromRow GroupId where
   fromRow = GroupId <$> Psql.field
 
-
 data OutputGroup = OutputGroup
-  { ogId :: GroupId
+  { ogId         :: GroupId
   , ogMigrations :: NonEmpty OutputMigration
+  , ogCreatedAt  :: UTCTime
   }
   deriving (Show, Eq)
 
@@ -147,7 +147,7 @@ data OutputMigration = OutputMigration
   } deriving stock (Eq, Show, Ord, Generic)
     deriving anyclass (Psql.FromRow)
 
-data ApplicationRow = ApplicationRow
+data GroupRow = GroupRow
   { arId         :: GroupId
   , arCreatedAt  :: UTCTime
   } deriving stock (Show, Eq, Ord, Generic)
@@ -159,20 +159,34 @@ outputGroupToVersions = fmap ((omVersion *** omHash) . join (,)) . ogMigrations
 outputGroupsToVersions :: [OutputGroup] -> [(Version, Hash)]
 outputGroupsToVersions = concatMap (toList . outputGroupToVersions)
 
-hashConflicts :: [InputMigration] -> DB (Maybe [Version])
-hashConflicts migrations =
-  fmap (hashConflictsInternal
-    (map ((inputVersion *** inputHash) . join (,)) migrations) . outputGroupsToVersions)
-    <$> listApplications
+flattenOutputGroups :: [OutputGroup] -> [OutputMigration]
+flattenOutputGroups = concatMap (NonEmpty.toList . ogMigrations)
 
-getOutputGroup :: GroupId -> DB OutputGroup
-getOutputGroup aId = do
+hashConflicts :: [InputMigration] -> DB (Maybe [Version])
+hashConflicts migrations = fmap (hashConflictsInternal migrations . flattenOutputGroups) <$> listApplications
+
+dup :: (t -> a) -> (t -> b) -> t -> (a, b)
+dup f g x = (f x, g x) -- ((,) <$> f <*> g)
+
+hashConflictsInternal :: [InputMigration] -> [OutputMigration] -> [Version]
+hashConflictsInternal newVersions oldVersions =
+  let hashableMap = Map.fromList $ map (dup omVersion omHash) $ oldVersions
+      lookupDifferentHash theMap (key, newHash) =
+        case Map.lookup key theMap of
+          Just existingHash
+              | existingHash /= newHash -> Just key
+          _ -> Nothing
+
+  in mapMaybe (lookupDifferentHash hashableMap . dup inputVersion inputHash) newVersions
+
+getOutputGroup :: GroupRow -> DB OutputGroup
+getOutputGroup GroupRow {..} = do
   outputMigrations <- NonEmpty.fromList <$> query [sql|
     SELECT version, hash, application_id, created_at
     FROM meta.actions
     WHERE application_id = ?
-  |] aId
-  pure $ OutputGroup aId outputMigrations
+  |] arId
+  pure $ OutputGroup arId outputMigrations arCreatedAt
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
 apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
@@ -180,27 +194,15 @@ apply migrations = do
   mAppliedMigration <- listApplications
   forM mAppliedMigration $ \appliedMigrations -> do
     let unappliedMigrations = differenceMigrationsByVersion
-          (toList $ inputGroupMigrations migrations) $ map fst $ outputGroupsToVersions  appliedMigrations
+          (toList $ inputGroupMigrations migrations) $ map fst $
+            outputGroupsToVersions  appliedMigrations
 
-    forM (nonEmpty unappliedMigrations) $ \ms -> do
-      ApplicationRow {..} <- applyMigrations ms
-      getOutputGroup arId
+    forM (nonEmpty unappliedMigrations) $ \ms ->
+      getOutputGroup =<< applyMigrations ms
 
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'
 -------------------------------------------------------------------------------
-
-hashConflictsInternal :: [(Version, Hash)] -> [(Version, Hash)] -> [Version]
-hashConflictsInternal newVersions oldVersions =
-  let hashableMap = Map.fromList oldVersions
-      lookupDifferentHash theMap (key, newHash) =
-        case Map.lookup key theMap of
-          Just existingHash
-              | existingHash /= newHash -> Just key
-          _ -> Nothing
-
-  in mapMaybe (lookupDifferentHash hashableMap) newVersions
-
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
   = Set.toList
@@ -211,40 +213,23 @@ differenceMigrationsByVersion migrations appliedVersions =
   let versionsToApply = diffToUnappliedMigrations (map inputVersion migrations) appliedVersions
   in filter (\m -> inputVersion m `elem` versionsToApply) migrations
 
-applyMigrations :: NonEmpty (InputMigration) -> DB ApplicationRow
+applyMigrations :: NonEmpty (InputMigration) -> DB GroupRow
 applyMigrations migrations = do
-  application@ApplicationRow {..} <- createApplication
+  application@GroupRow {..} <- createApplication
   mapM_ (applyMigration arId) migrations
   pure application
 
-migrationHasBeenApplied :: InputMigration -> DB Bool
-migrationHasBeenApplied = versionExists . inputVersion
-
-applyMigration :: GroupId -> InputMigration -> DB Bool
+applyMigration :: GroupId -> InputMigration -> DB ()
 applyMigration applicationId migration = do
-  migrationHasBeenApplied migration >>= \case
-    True -> pure False
-    False -> do
-      inputAction migration
-      insertMigration applicationId migration
-      pure True
+  inputAction migration
+  insertMigration applicationId migration
 
-createApplication :: DB ApplicationRow
+createApplication :: DB GroupRow
 createApplication = fmap head $ query_ [sql|
   INSERT INTO meta.applications
   DEFAULT VALUES
   RETURNING id, created_at
   |]
-
-
-versionExists :: Version -> DB Bool
-versionExists = fmap (Psql.fromOnly . head) . query [sql|
-  SELECT EXISTS (
-    SELECT 1
-    FROM meta.actions
-    WHERE version = ?
-  )
-  |] . Psql.Only
 
 insertMigration :: GroupId -> InputMigration -> DB ()
 insertMigration groupId migration = void $ execute
@@ -257,6 +242,6 @@ insertMigration groupId migration = void $ execute
 
 listApplications :: DB (Maybe [OutputGroup])
 listApplications = withSetup $ do
-  as <- query_ [sql| SELECT id FROM meta.applications |]
+  as <- query_ [sql| SELECT id, created_at FROM meta.applications |]
   forM as getOutputGroup
 
