@@ -31,12 +31,10 @@ import qualified Database.PostgreSQL.Simple.FromField as Psql
 import qualified Database.PostgreSQL.Simple.ToField as Psql
 import qualified Database.PostgreSQL.Simple.ToRow as Psql
 import qualified Database.PostgreSQL.Simple.FromRow as Psql
-import qualified Database.PostgreSQL.Simple.Types as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import Data.String.Here.Interpolated (i)
 import Control.Monad (void, join)
 import GHC.Generics
-import Control.Monad.Catch
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
@@ -93,31 +91,19 @@ inputGroup = InputGroup
 -------------------------------------------------------------------------------
 -- Helpers
 -------------------------------------------------------------------------------
-verifyTableExists :: Psql.Query -> DB Bool
-verifyTableExists tableName = Psql.fromOnly . head <$> query_ [i|
+verifyTableExists :: Psql.Query -> Psql.Query -> DB Bool
+verifyTableExists schemaName tableName = Psql.fromOnly . head <$> query_ [i|
   SELECT EXISTS (
   SELECT 1
   FROM   information_schema.tables
-  WHERE  table_schema = ANY(regexp_split_to_array(current_setting('search_path'), '\,\s*'))
+  WHERE  table_schema = '${schemaName}'
   AND    table_name = '${tableName}'
   );
   |]
 
-setSchema :: Psql.Query -> DB ()
-setSchema schemaName = void $ execute_ [i| SET search_path=${schemaName};|]
-
-getSchema :: DB Psql.Query
-getSchema = Psql.Query . Psql.fromOnly . head <$> query_ [sql|SHOW search_path|]
-
-withMetaSchema :: DB a -> DB a
-withMetaSchema action = mask $ \restore -> do
-  oldSchema <- getSchema
-  setSchema "meta"
-  restore action `finally` setSchema oldSchema
-
 onSetup :: (Bool -> Bool) -> DB a -> DB (Maybe a)
-onSetup onF action = withMetaSchema $ do
-  setupExists <- verifyTableExists "applications"
+onSetup onF action = do
+  setupExists <- verifyTableExists "meta" "applications"
   if onF setupExists
     then Just <$> action
     else pure Nothing
@@ -130,15 +116,15 @@ withoutSetup = onSetup not
 
 setup :: DB (Maybe ())
 setup = withoutSetup $ void $ execute_ [sql|
-  CREATE TABLE applications
+  CREATE TABLE meta.applications
   ( id SERIAL PRIMARY KEY
   , created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
   );
 
-  CREATE TABLE actions
+  CREATE TABLE meta.actions
   ( version TIMESTAMP WITH TIME ZONE PRIMARY KEY
   , hash bytea NOT NULL
-  , application_id int NOT NULL REFERENCES applications ON DELETE CASCADE
+  , application_id int NOT NULL REFERENCES meta.applications ON DELETE CASCADE
   , created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
   );
 
@@ -146,8 +132,8 @@ setup = withoutSetup $ void $ execute_ [sql|
 
 teardown :: DB (Maybe ())
 teardown = withSetup $ void $ execute_ [sql|
-    DROP TABLE actions;
-    DROP TABLE applications;
+    DROP TABLE meta.actions;
+    DROP TABLE meta.applications;
   |]
 
 --------------------------
@@ -183,14 +169,14 @@ getOutputGroup :: GroupId -> DB OutputGroup
 getOutputGroup aId = do
   outputMigrations <- NonEmpty.fromList <$> query [sql|
     SELECT version, hash, application_id, created_at
-    FROM actions
+    FROM meta.actions
     WHERE application_id = ?
   |] aId
   pure $ OutputGroup aId outputMigrations
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
 apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
-apply migrations = withMetaSchema $ do
+apply migrations = do
   mAppliedMigration <- listApplications
   forM mAppliedMigration $ \appliedMigrations -> do
     let unappliedMigrations = differenceMigrationsByVersion
@@ -245,7 +231,7 @@ applyMigration applicationId migration = do
 
 createApplication :: DB ApplicationRow
 createApplication = fmap head $ query_ [sql|
-  INSERT INTO applications
+  INSERT INTO meta.applications
   DEFAULT VALUES
   RETURNING id, created_at
   |]
@@ -255,7 +241,7 @@ versionExists :: Version -> DB Bool
 versionExists = fmap (Psql.fromOnly . head) . query [sql|
   SELECT EXISTS (
     SELECT 1
-    FROM actions
+    FROM meta.actions
     WHERE version = ?
   )
   |] . Psql.Only
@@ -263,7 +249,7 @@ versionExists = fmap (Psql.fromOnly . head) . query [sql|
 insertMigration :: GroupId -> InputMigration -> DB ()
 insertMigration groupId migration = void $ execute
   [sql|
-    INSERT INTO actions
+    INSERT INTO meta.actions
     (version, hash, application_id)
     VALUES
     (?, ?, ?)
@@ -271,6 +257,6 @@ insertMigration groupId migration = void $ execute
 
 listApplications :: DB (Maybe [OutputGroup])
 listApplications = withSetup $ do
-  as <- query_ [sql| SELECT id FROM applications |]
+  as <- query_ [sql| SELECT id FROM meta.applications |]
   forM as getOutputGroup
 

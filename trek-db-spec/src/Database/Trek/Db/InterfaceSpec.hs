@@ -258,6 +258,7 @@ applyListMigrationSpecs = describe "migration and listApplication" $ do
 
   describe "actions are preserved during migration" $ it "all partitions run the same" $ \SpecState {ssRunner} ->
     forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
+      ssRunner clear
       expectedWorldState <- mapM_ (ssRunner . sequenceA_ . fmap inputAction) parts >> ssRunner worldState
       ssRunner clear
       ssRunner
