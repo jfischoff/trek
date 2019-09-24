@@ -12,8 +12,6 @@ module Database.Trek.Db
   , Version
   , Hash
   , DB
-  , NoSetup(..)
-  , AlreadySetup (..)
   , OutputGroup (..)
   , InputGroup (..)
   , inputMigration
@@ -32,7 +30,6 @@ import qualified Database.PostgreSQL.Simple.ToField as Psql
 import qualified Database.PostgreSQL.Simple.ToRow as Psql
 import qualified Database.PostgreSQL.Simple.FromRow as Psql
 import Database.PostgreSQL.Simple.SqlQQ
-import Data.String.Here.Interpolated (i)
 import Control.Monad (void, join)
 import GHC.Generics
 import qualified Data.Map as Map
@@ -42,13 +39,13 @@ import Data.Traversable
 import Data.Foldable
 import Control.Arrow ((***))
 
+-- TODO Mixin the type of the extra data with an interface.
+-- the type will implement a type function that produces a
+-- list of columns
+
 type Version = UTCTime
 
 type Hash = ByteString
-
-data NoSetup = NoSetup
-
-data AlreadySetup = AlreadySetup
 
 type Time = UTCTime
 
@@ -91,19 +88,16 @@ inputGroup = InputGroup
 -------------------------------------------------------------------------------
 -- Helpers
 -------------------------------------------------------------------------------
-verifyTableExists :: Psql.Query -> Psql.Query -> DB Bool
-verifyTableExists schemaName tableName = Psql.fromOnly . head <$> query_ [i|
-  SELECT EXISTS (
-  SELECT 1
-  FROM   information_schema.tables
-  WHERE  table_schema = '${schemaName}'
-  AND    table_name = '${tableName}'
-  );
-  |]
-
 onSetup :: (Bool -> Bool) -> DB a -> DB (Maybe a)
 onSetup onF action = do
-  setupExists <- verifyTableExists "meta" "applications"
+  setupExists <- Psql.fromOnly . head <$> query_ [sql|
+    SELECT EXISTS (
+      SELECT 1
+      FROM   information_schema.tables
+      WHERE  table_schema = 'meta'
+      AND    table_name = 'applications'
+    )
+    |]
   if onF setupExists
     then Just <$> action
     else pure Nothing
@@ -241,7 +235,6 @@ insertMigration groupId migration = void $ execute
   |] (migration Psql.:. groupId)
 
 listApplications :: DB (Maybe [OutputGroup])
-listApplications = withSetup $ do
-  as <- query_ [sql| SELECT id, created_at FROM meta.applications |]
-  forM as getOutputGroup
-
+listApplications = withSetup $
+  mapM getOutputGroup =<<
+    query_ [sql| SELECT id, created_at FROM meta.applications |]
