@@ -10,6 +10,8 @@ instance Show WorldState
 
 -- InputMigration accessors
 inputVersion   :: InputMigration -> Version
+-- inputAction    :: InputMigration -> IO (DB ())
+-- or we come up with idepotemt withFile MonadMask
 inputAction    :: InputMigration -> DB ()
 
 extraMigrations :: NonEmpty InputMigration

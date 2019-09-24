@@ -11,7 +11,28 @@ import Data.Maybe
 import Control.Monad (join)
 
 {-
+
+TODO need to test that setup >> setup >> migrate works!
+
+the migrate filePath -> dispatches based type of file
+if it is a directory it tries to load each file
+  -- it dispatches of the file type
+if it is a file it loads it as a newline manifest
+if it is a sql file it runs it and using the name to determine the migration
+if it is a sh it runs it
+
+Crazy idea. I can test the migrate filePath implementations with the same test interface
+
+Crazy idea more the exe can shelf test the extension scripts
+
+The really important discovery is reusing the same interface is useful
+
+I might want the action interface to be `IO (DB a)` so I can predicably read files
+
 TOOD I need to make a negative implementation that is somewhat reasonable.
+
+except it didn't work
+because the migrate fielPath interface is in IO
 
 Some ideas
 need to make the job runner next

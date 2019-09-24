@@ -28,6 +28,20 @@ source-repository head
 library
   exposed-modules:
       Database.Trek.Db
+    -- , Database.Trek.Db.Metadata
+    -- , Database.Trek.Db.Metadata.Impl
+    -- , Database.PostgreSQL.Simple.Statement
+    -- This could have a plugin interface
+    -- , Database.Trek.Db.BackupHooks.Impl
+    -- this are different version of migrate filePath
+    -- , Database.Trek.Db.FromDirectory
+    -- , Database.Trek.Db.FromManifest
+    -- , Database.Trek.Db.FromSql
+    -- , Database.Trek.Db.FromSh
+    -- This exposes a new interface
+    -- that is something like setup, teardown, migrate filePath, listMigrations
+
+    -- add the simpler  teardown, migrate filePath, listMigrations
   hs-source-dirs:
       src
   default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
@@ -71,12 +85,8 @@ test-suite test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:
       base >=4.7 && <5
-    , bytestring
-    , containers
     , hspec
     , hspec-discover
-    , hspec-expectations-lifted
-    , hspec-expectations-monadthrow
     , trek-db
     , trek-db-spec
     , db-test-interface
