@@ -30,14 +30,13 @@ import qualified Database.PostgreSQL.Simple.ToField as Psql
 import qualified Database.PostgreSQL.Simple.ToRow as Psql
 import qualified Database.PostgreSQL.Simple.FromRow as Psql
 import Database.PostgreSQL.Simple.SqlQQ
-import Control.Monad (void, join)
+import Control.Monad (void)
 import GHC.Generics
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 import Data.Maybe
 import Data.Traversable
 import Data.Foldable
-import Control.Arrow ((***))
 
 type Version = UTCTime
 
@@ -147,8 +146,11 @@ data GroupRow = GroupRow
   } deriving stock (Show, Eq, Ord, Generic)
     deriving anyclass (Psql.FromRow)
 
+dup :: (t -> a) -> (t -> b) -> t -> (a, b)
+dup f g x = (f x, g x) -- ((,) <$> f <*> g)
+
 outputGroupToVersions :: OutputGroup -> NonEmpty (Version, Hash)
-outputGroupToVersions = fmap ((omVersion *** omHash) . join (,)) . ogMigrations
+outputGroupToVersions = fmap (dup omVersion omHash) . ogMigrations
 
 outputGroupsToVersions :: [OutputGroup] -> [(Version, Hash)]
 outputGroupsToVersions = concatMap (toList . outputGroupToVersions)
@@ -158,9 +160,6 @@ flattenOutputGroups = concatMap (NonEmpty.toList . ogMigrations)
 
 hashConflicts :: [InputMigration] -> DB (Maybe [Version])
 hashConflicts migrations = fmap (hashConflictsInternal migrations . flattenOutputGroups) <$> listApplications
-
-dup :: (t -> a) -> (t -> b) -> t -> (a, b)
-dup f g x = (f x, g x) -- ((,) <$> f <*> g)
 
 hashConflictsInternal :: [InputMigration] -> [OutputMigration] -> [Version]
 hashConflictsInternal newVersions oldVersions =
