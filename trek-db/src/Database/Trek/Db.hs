@@ -179,6 +179,7 @@ getOutputGroup GroupRow {..} = do
     SELECT version, hash, application_id, created_at
     FROM meta.actions
     WHERE application_id = ?
+    ORDER BY created_at ASC
   |] arId
   pure $ OutputGroup arId outputMigrations arCreatedAt
 -- | The migration function. Returns the migration group application row if
