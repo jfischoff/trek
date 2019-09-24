@@ -38,7 +38,6 @@ library
     , containers
     , cryptonite
     , exceptions
-    , here
     , memory
     , pg-transact >= 0.2.1.0
     , postgresql-simple
