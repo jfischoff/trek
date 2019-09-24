@@ -59,3 +59,4 @@ tags
 .ghcid
 ghcid.txt
 dist-newstyle
+cabal.project.local
