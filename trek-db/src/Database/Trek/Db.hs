@@ -39,10 +39,6 @@ import Data.Traversable
 import Data.Foldable
 import Control.Arrow ((***))
 
--- TODO Mixin the type of the extra data with an interface.
--- the type will implement a type function that produces a
--- list of columns
-
 type Version = UTCTime
 
 type Hash = ByteString
@@ -107,6 +103,10 @@ withSetup = onSetup id
 
 withoutSetup :: DB a -> DB (Maybe a)
 withoutSetup = onSetup not
+
+-------------------------------------------------------------------------------
+-- setup/teardown
+-------------------------------------------------------------------------------
 
 setup :: DB (Maybe ())
 setup = withoutSetup $ void $ execute_ [sql|
