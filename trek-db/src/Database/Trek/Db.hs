@@ -237,4 +237,7 @@ insertMigration groupId migration = void $ execute
 listApplications :: DB (Maybe [OutputGroup])
 listApplications = withSetup $
   mapM getOutputGroup =<<
-    query_ [sql| SELECT id, created_at FROM meta.applications |]
+    query_ [sql|
+      SELECT id, created_at
+      FROM meta.applications
+      ORDER BY created_at ASC |]
