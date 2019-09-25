@@ -27,12 +27,100 @@ Crazy idea more the exe can shelf test the extension scripts
 
 The really important discovery is reusing the same interface is useful
 
-I might want the action interface to be `IO (DB a)` so I can predicably read files
+I might want the action interface to be `ReaderT DbConfig IO a` so I can predicably read files
+
+The thing that is confusing me is the interface for the actual migration
+
+The main thing I am trying to figure out is
+
+what is the external interface
+
+I need to work back from the cmd line
+
+
+> trek setup
+
+> trek setup
+exitcode: 8
+stderr: Setup Already! >:(
+
+> trek migrate FILEPATH
+exitcode: 16
+stderr: Not Setup! Execute `trek setup` to setup.
+exitcode: 32
+stderr: The following versions have hash conflicts [VERSION]
+> trek migrate FILEPATH --warn-hash-conflicts
+stderr: The following versions have hash conflicts [VERSION]
+{ name           : foo
+, version        : 12/12/1980
+, hash           : xofdshagnosfdasngs
+, rollback       : fdsqfg12
+, application_id : 1
+, created_at     : 12/12/2020
+}
+> trek migrate FILEPATH --no-warn-hash-conflicts
+{ name           : foo
+, version        : 12/12/1980
+, hash           : xofdshagnosfdasngs
+, rollback       : fdsqfg12
+, application_id : 1
+, created_at     : 12/12/2020
+}
+> trek migrate FILEPATH
+{ rollback   : fdsqfg12
+, id         : 1
+, migrations :
+  [ { name           : foo
+    , version        : 12/12/1980
+    , hash           : xofdshagnosfdasngs
+    , application_id : 1
+    , created_at     : 12/12/2020
+    }
+  , { name           : foo
+    , version        : 12/12/1981
+    , hash           : xofdshagnosfdasngs
+    , application_id : 1
+    , created_at     : 12/12/2021
+    }
+  ]
+}
+> trek migrate FILEPATH
+exitcode: 64
+stderr: Nothing to migrate!
+> trek migrate FILEPATH --warn-empty-migration
+stderr: Nothing to migrate!
+> trek migrate FILEPATH --no-warn-empty-migration
+
+trek hash-conflicts FILEPATH
+exitcode: 16
+stderr: Not Setup! Execute `trek setup` to setup.
+
+trek add-hashes [VERSION]
+exitcode: 16
+stderr: Not Setup! Execute `trek setup` to setup.
+
+trek remove-hashes [VERSION]
+exitcode: 16
+stderr: Not Setup! Execute `trek setup` to setup.
+
+trek teardown
+exitcode:
+
+In the case that we don't care about hashes
+
+trek migrate FILEPATH
+trek list
+trek teardown
+
+the idea is that I can make a Impl out of this for the spec.
+Also I can test that somethings are exactly as I expect them.
+
+-- On failure it outputs the state to rollback to
+trek migrate --error-on-conflict FILEPATH
+trek list
+trek teardown
 
 TOOD I need to make a negative implementation that is somewhat reasonable.
-
-except it didn't work
-because the migrate fielPath interface is in IO
 
 Some ideas
 need to make the job runner next

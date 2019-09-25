@@ -58,5 +58,5 @@ tags
 .vagrant
 .ghcid
 ghcid.txt
-dist-newstyle
+dist-newstyle/
 cabal.project.local
