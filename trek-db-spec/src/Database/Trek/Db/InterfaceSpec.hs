@@ -33,8 +33,23 @@ There is a default app that uses the interface
 It creates the parser and then does a dispatch
 it pretty prints the result
 
+The tests need the output parser
+The interface does not
 
 TODO need to test that setup >> setup >> migrate works!
+
+Here is the question is there a way to make the parsers dynmanic
+use dynamic
+the parser makes
+type CommandArgs = Parser (First (Key, Dynamic))
+
+commandArgs = plugins
+
+type Dispatch = Map Key (Dynamic -> IO ())
+
+dispatch
+
+for now it can just hardcode the functions
 
 the migrate filePath -> dispatches based type of file
 if it is a directory it tries to load each file
