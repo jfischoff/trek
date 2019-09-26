@@ -12,6 +12,28 @@ import Control.Monad (join)
 
 {-
 
+There is another interface
+The public interface which implements
+Everything with functions that return IO (ExitCode, String, String)
+
+and take in [String]
+
+If I have this impl and a bunch of parsers I can make the DB interface
+
+all these functions are implemented by a helper that catches all exceptions and starts by reading all of
+I'm going to test at the function level and the executable level
+
+new idea
+start with a typed interface and command line parsers for each command.
+The parsers are tested individually in unit tests and the app tests them together.
+
+With the parsers/pretty printer/to (ExitCode, String, String) we can make the less typed interface
+
+There is a default app that uses the interface
+It creates the parser and then does a dispatch
+it pretty prints the result
+
+
 TODO need to test that setup >> setup >> migrate works!
 
 the migrate filePath -> dispatches based type of file
@@ -104,7 +126,7 @@ exitcode: 16
 stderr: Not Setup! Execute `trek setup` to setup.
 
 trek teardown
-exitcode:
+exitcode: 16
 
 In the case that we don't care about hashes
 
