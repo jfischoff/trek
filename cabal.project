@@ -4,3 +4,4 @@ packages: trek-db-test-types/
           trek-db-spec/
           trek-db/
           trek/
+          trek-cmd-line-interface/
