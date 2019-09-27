@@ -1,5 +1,7 @@
 module Database.Trek.CmdLineSpec where
+import Database.Trek.CmdLine
 import Test.Hspec
+import System.Exit
 
 {-
 
@@ -9,7 +11,14 @@ import Test.Hspec
 > trek setup
 exitcode: 8
 stderr: Setup Already! >:(
+-}
 
+setupSpecs :: Spec
+setupSpecs = do
+  it "setup initially succeed" $ setup [] `shouldReturn` (ExitSuccess, [], [])
+
+
+{-
 > trek migrate FILEPATH
 exitcode: 16
 stderr: Not Setup! Execute `trek setup` to setup.
