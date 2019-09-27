@@ -51,6 +51,34 @@ dispatch
 
 for now it can just hardcode the functions
 
+that easy
+
+still a win
+
+the executable is indeterminate package with a main. It is used with another impl to make a exe
+that interface is type
+this exe merely combines the parser and does the dispatch and pretty printing.
+well that is not the whole story
+there is are tests of just the parsing running and pretty printing of the commands.
+
+These are tests against an untyped interface. And both the exe and the individuals functions are tested ... thus justifying the
+second less typed interface .. nope
+
+This is really just an impl of going from the test stuff (parser, func, pretty) to the less typed interface
+This is just a helper module. The tests are tests specification, e.g. that it preserves the migration interface
+It also tests that all the point tests work so the formatting is one point
+
+the interface I have identified is one that adds parsers and pretty printers
+and for testing I need the output parser
+
+additionally I do need an interface that produces just (ExitCode, String, String) and takes in [String]
+this is because I have to wrap the exe's and produce the wrapped functions with the parser etc for testing.
+the reason the parsers things is an interface is because it is the interface used by the main executable.
+
+
+
+
+
 the migrate filePath -> dispatches based type of file
 if it is a directory it tries to load each file
   -- it dispatches of the file type
@@ -73,6 +101,9 @@ The main thing I am trying to figure out is
 what is the external interface
 
 I need to work back from the cmd line
+
+.
+
 
 
 > trek setup
