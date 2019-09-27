@@ -5,3 +5,4 @@ packages: trek-db-test-types/
           trek-db/
           trek/
           trek-cmd-line-interface/
+          trek-cmd-line-spec/

@@ -38,3 +38,7 @@ apply filePath = do
     ExitFailure 16 -> pure Nothing
     ExitFailure 64 -> pure $ Just Nothing
     e -> throwIO e
+
+hashConflicts :: [InputMigration] -> DB (Maybe [Version])
+hashConflicts filePaths = do
+  (exitCode, stdOut, _) <- I.migrate filePath
