@@ -100,4 +100,5 @@ trek teardown
 
 
 spec :: Spec
-spec = pure ()
+spec = do
+  setupSpecs
