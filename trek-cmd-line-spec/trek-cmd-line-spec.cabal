@@ -1,0 +1,65 @@
+cabal-version: 2
+
+-- This file has been generated from package.yaml by hpack version 0.31.1.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 30259827f63da5564d48795177b79a07c95b14a4aff92bcdfee614691981a6bf
+
+name:           trek-cmd-line-spec
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
+homepage:       https://github.com/githubuser/trek#readme
+bug-reports:    https://github.com/githubuser/trek/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2019 Jonathan Fischoff
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/trek
+
+library
+  exposed-modules:
+      Database.Trek.CmdLineSpec
+  hs-source-dirs:
+      src
+  default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
+  ghc-options: -Wall
+  build-depends:
+      base >=4.7 && <5
+    , hspec
+    , hspec-expectations-lifted
+
+  default-language: Haskell2010
+
+library trek-cmd-line-spec-implementation
+  exposed-modules: Database.Trek.CmdLine
+  default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
+  build-depends: base
+  hs-source-dirs: reference-src
+  default-language: Haskell2010
+
+test-suite test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules: Tests.Database.Trek.CmdLineSpecSpec
+  hs-source-dirs:
+      test
+  default-extensions: QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -Wall
+  build-depends:
+      base >=4.7 && <5
+    , hspec
+    , hspec-discover
+    , trek-cmd-line-spec
+    , trek-cmd-line-spec-implementation
+  default-language: Haskell2010
+  mixins: trek-cmd-line-spec
+

@@ -1,0 +1,76 @@
+name:                trek-db-spec
+version:             0.1.0.0
+github:              "githubuser/trek"
+license:             BSD3
+author:              "Author name here"
+maintainer:          "example@example.com"
+copyright:           "2019 Jonathan Fischoff"
+
+extra-source-files:
+- README.md
+- ChangeLog.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
+
+default-extensions:
+- QuasiQuotes
+- RecordWildCards
+- LambdaCase
+- RankNTypes
+- ScopedTypeVariables
+- OverloadedStrings
+- GeneralizedNewtypeDeriving
+- DeriveGeneric
+- DeriveAnyClass
+- TupleSections
+- FlexibleContexts
+- DerivingStrategies
+
+dependencies:
+- base >= 4.7 && < 5
+- postgresql-simple
+- pg-transact >= 0.2.0.1
+- time
+- text
+- bytestring
+- semigroups
+- exceptions
+- cryptonite
+- memory
+- interpolatedstring-perl6
+- containers
+- aeson
+- hspec
+- hspec-expectations-monadthrow
+- tmp-postgres
+- neat-interpolation
+- postgres-options
+
+library:
+  source-dirs: src
+  ghc-options: -Wall
+
+tests:
+  test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -Wall
+    dependencies:
+    - hspec
+    - hspec-discover
+    - trek
+    - time-qq
+
+    - hspec-expectations-lifted
+    - hspec-expectations-monadthrow
