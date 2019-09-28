@@ -119,24 +119,6 @@ applyListApplicationsSpecs = do
     _ <- apply [extraMigration]
     listApplications [] `shouldReturn` (ExitSuccess, twoApplicationRecords, "")
 
-{-
-
-
-trek list
-trek teardown
-
-the idea is that I can make a Impl out of this for the spec.
-Also I can test that somethings are exactly as I expect them.
-
--- On failure it outputs the state to rollback to
-trek migrate --error-on-conflict FILEPATH
-trek list
-trek teardown
-
--}
-
-
-
 spec :: Spec
 spec = do
   aroundAllMigration applyListApplicationsSpecs
