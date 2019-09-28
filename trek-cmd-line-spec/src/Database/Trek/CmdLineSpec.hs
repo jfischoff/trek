@@ -26,6 +26,7 @@ aroundAll withFunc specWith = do
 data TestMigrations = TestMigrations
   { successfulMigration  :: FilePath
   , conflictingMigration :: FilePath
+  , migrationDirectory   :: FilePath
   }
 
 makeTestMigrations :: FilePath -> TestMigrations
@@ -63,6 +64,17 @@ successfulMigrationRecord = [here|
 }
 |]
 
+extraMigrationRecord :: String
+extraMigrationRecord = [here|
+{ "name"           : "bar"
+, "version"        : "12/12/1980"
+, "hash"           : "barbar"
+, "rollback"       : "fdsqfg12"
+, "application_id" : 1
+, "created_at"     : "12/13/2020"
+}
+|]
+
 conflictingMigrationWarning :: String
 conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"]"
 
@@ -75,12 +87,12 @@ applyListApplicationsSpecs = do
     apply [successfulMigration] `shouldReturn` (ExitSuccess, successfulMigrationRecord, "")
   it "reports a hash collision error" $ \TestMigrations {..} -> do
     _ <- setup []
-    apply [conflictingMigration] `shouldReturn` (ExitFailure 32, conflictingMigrationWarning, "")
+    apply [migrationDirectory] `shouldReturn` (ExitFailure 32, conflictingMigrationWarning, "")
+  it "reports a hash collision warning" $ \TestMigrations {..} -> do
+    _ <- setup []
+    apply [migrationDirectory, "--warn-hash-conflicts"] `shouldReturn` (ExitSuccess, extraMigrationRecord, conflictingMigrationWarning)
 
 {-
-> trek migrate FILEPATH
-exitcode: 32
-stderr: The following versions have hash conflicts [VERSION]
 > trek migrate FILEPATH --warn-hash-conflicts
 stderr: The following versions have hash conflicts [VERSION]
 { name           : foo
