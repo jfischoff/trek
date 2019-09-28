@@ -109,7 +109,7 @@ bothRecords = [here|
   |]
 
 conflictingMigrationWarning :: String
-conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"]"
+conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"=\"conflictingHash\"]"
 
 nothingToApply :: String
 nothingToApply = "Nothing to apply!"
@@ -155,6 +155,13 @@ applyListApplicationsSpecs = do
     _ <- apply [successfulMigration]
     apply [successfulMigration, "--no-warn-empty-migration"] `shouldReturn` (ExitSuccess, "", "")
 
+  it "hash-conflicts fails when not setup" $ \TestMigrations {..} -> do
+    hashConflicts [] `shouldReturn` noSetupMessage
+  it "hash-conflicts fails when not setup" $ \TestMigrations {..} -> do
+    _ <- setup []
+    _ <- apply [successfulMigration]
+    hashConflicts [conflictingMigration] `shouldReturn`
+      (ExitSuccess, "[\"12/12/1980\"=\"conflictingHash\"]", "")
 
 {-
 
@@ -162,7 +169,7 @@ trek hash-conflicts FILEPATH
 exitcode: 16
 stderr: Not Setup! Execute `trek setup` to setup.
 
-trek add-hashes [VERSION]
+trek add-hashes [VERSION=HASH]
 exitcode: 16
 stderr: Not Setup! Execute `trek setup` to setup.
 
