@@ -6,11 +6,17 @@ import System.Exit
 
 setupSpecs :: Spec
 setupSpecs = do
+  it "setup doesn't accept arguments" $ setup ["hey"] `shouldReturn`
+    (ExitFailure 4, "", "hey is not valid argument for `trek setup`. `trek setup` does not take additional arguments")
   it "setup initially succeed" $ setup [] `shouldReturn` (ExitSuccess, "", "")
   it "setup >> setup fails" $ (setup [] >> setup []) `shouldReturn`
     (ExitFailure 8, "", "Setup Already! >:(\n")
+  it "teardown doesn't accept arguments" $ teardown ["hey"] `shouldReturn`
+    (ExitFailure 4, "", "hey is not valid argument for `trek teardown`. `trek teardown` does not take additional arguments")
   it "teardown fails without setup" $ teardown [] `shouldReturn`
     (ExitFailure 16, "", "Not Setup! Excute `trek setup` to setup\n")
+  it "teardown succeeds after setup" $ (setup [] >> teardown [])
+    `shouldReturn` (ExitSuccess, "", "")
 
 {-
 > trek migrate FILEPATH
