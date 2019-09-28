@@ -157,17 +157,17 @@ applyListApplicationsSpecs = do
 
   it "hash-conflicts fails when not setup" $ \TestMigrations {..} -> do
     hashConflicts [] `shouldReturn` noSetupMessage
-  it "hash-conflicts fails when not setup" $ \TestMigrations {..} -> do
+  it "hash-conflicts returns conflicts" $ \TestMigrations {..} -> do
     _ <- setup []
     _ <- apply [successfulMigration]
     hashConflicts [conflictingMigration] `shouldReturn`
       (ExitSuccess, "[\"12/12/1980\"=\"conflictingHash\"]", "")
+  it "returns nothing if there are not hash conflicts" $ \TestMigrations {..} -> do
+    _ <- setup []
+    hashConflicts [conflictingMigration] `shouldReturn`
+      (ExitSuccess, "", "")
 
 {-
-
-trek add-hashes [VERSION=HASH]
-exitcode: 16
-stderr: Not Setup! Execute `trek setup` to setup.
 
 trek remove-hashes [VERSION]
 exitcode: 16
