@@ -93,6 +93,9 @@ bothRecords = [here|
 nothingToApply :: String
 nothingToApply = "Nothing to apply!"
 
+twoApplicationRecords :: String
+twoApplicationRecords = error "twoApplicationRecords"
+
 applyListApplicationsSpecs :: SpecWith TestMigrations
 applyListApplicationsSpecs = do
   it "apply returns migration record when successful" $ \TestMigrations {..} -> do
@@ -111,6 +114,10 @@ applyListApplicationsSpecs = do
     apply [successfulMigration, "--no-warn-empty-migration"] `shouldReturn` (ExitSuccess, "", "")
   it "list initially returns nothing" $ \TestMigrations {..} ->
     listApplications [] `shouldReturn` (ExitSuccess, "[]", "")
+  it "lists applied migrations" $ \TestMigrations {..} -> do
+    _ <- apply [successfulMigration]
+    _ <- apply [extraMigration]
+    listApplications [] `shouldReturn` (ExitSuccess, twoApplicationRecords, "")
 
 {-
 
