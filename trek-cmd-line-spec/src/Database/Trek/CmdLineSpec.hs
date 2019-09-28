@@ -23,6 +23,9 @@ aroundAll withFunc specWith = do
 
   beforeAll start $ afterAll stop $ specWith
 
+noSetupMessage :: (ExitCode, String, String)
+noSetupMessage = (ExitFailure 16, "", "Not Setup! Execute `trek setup` to setup\n")
+
 setupTeardownSpecs :: Spec
 setupTeardownSpecs = do
   it "setup doesn't accept arguments" $ setup ["hey"] `shouldReturn`
@@ -32,20 +35,20 @@ setupTeardownSpecs = do
     (ExitFailure 8, "", "Setup Already! >:(\n")
   it "teardown doesn't accept arguments" $ teardown ["hey"] `shouldReturn`
     (ExitFailure 4, "", "hey is not valid argument for `trek teardown`. `trek teardown` does not take additional arguments")
-  it "teardown fails without setup" $ teardown [] `shouldReturn`
-    (ExitFailure 16, "", "Not Setup! Excute `trek setup` to setup\n")
+  it "teardown fails without setup" $ teardown [] `shouldReturn` noSetupMessage
+
   it "teardown succeeds after setup" $ (setup [] >> teardown [])
     `shouldReturn` (ExitSuccess, "", "")
 
 applyListApplicationsSpecs :: SpecWith FilePath
 applyListApplicationsSpecs = do
   it "apply without setup fails" $ \migrationFile -> apply [migrationFile] `shouldReturn`
-    (ExitFailure 16, "", "")
+    noSetupMessage
 
 {-
 > trek migrate FILEPATH
 exitcode: 16
-stderr: Not Setup! Execute `trek setup` to setup.
+stderr:
 exitcode: 32
 stderr: The following versions have hash conflicts [VERSION]
 > trek migrate FILEPATH --warn-hash-conflicts
