@@ -165,10 +165,6 @@ applyListApplicationsSpecs = do
 
 {-
 
-trek hash-conflicts FILEPATH
-exitcode: 16
-stderr: Not Setup! Execute `trek setup` to setup.
-
 trek add-hashes [VERSION=HASH]
 exitcode: 16
 stderr: Not Setup! Execute `trek setup` to setup.
