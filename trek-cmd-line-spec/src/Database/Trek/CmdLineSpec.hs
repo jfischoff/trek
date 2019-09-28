@@ -4,7 +4,7 @@ import Test.Hspec
 import System.Exit
 import Control.Concurrent
 import System.IO.Temp
-import System.IO
+import Data.String.Here
 
 aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
 aroundAll withFunc specWith = do
@@ -23,6 +23,18 @@ aroundAll withFunc specWith = do
 
   beforeAll start $ afterAll stop $ specWith
 
+data TestMigrations = TestMigrations
+  { successfulMigration  :: FilePath
+  , conflictingMigration :: FilePath
+  }
+
+makeTestMigrations :: FilePath -> TestMigrations
+makeTestMigrations = undefined
+
+aroundAllMigration :: SpecWith TestMigrations -> Spec
+aroundAllMigration = aroundAll $
+  \f -> withSystemTempDirectory "migration" $ f . makeTestMigrations
+
 noSetupMessage :: (ExitCode, String, String)
 noSetupMessage = (ExitFailure 16, "", "Not Setup! Execute `trek setup` to setup\n")
 
@@ -40,15 +52,27 @@ setupTeardownSpecs = do
   it "teardown succeeds after setup" $ (setup [] >> teardown [])
     `shouldReturn` (ExitSuccess, "", "")
 
-applyListApplicationsSpecs :: SpecWith FilePath
+successfulMigrationRecord :: String
+successfulMigrationRecord = [here|
+{ "name"           : "foo"
+, "version"        : "12/12/1980"
+, "hash"           : "xofdshagnosfdasngs"
+, "rollback"       : "fdsqfg12"
+, "application_id" : 1
+, "created_at"     : "12/12/2020"
+}
+|]
+
+applyListApplicationsSpecs :: SpecWith TestMigrations
 applyListApplicationsSpecs = do
-  it "apply without setup fails" $ \migrationFile -> apply [migrationFile] `shouldReturn`
+  it "apply without setup fails" $ \TestMigrations {..} -> apply [successfulMigration] `shouldReturn`
     noSetupMessage
+  it "apply returns migration record when successful" $ \TestMigrations {..} -> do
+    _ <- setup []
+    apply [successfulMigration] `shouldReturn` (ExitSuccess, successfulMigrationRecord, "")
 
 {-
 > trek migrate FILEPATH
-exitcode: 16
-stderr:
 exitcode: 32
 stderr: The following versions have hash conflicts [VERSION]
 > trek migrate FILEPATH --warn-hash-conflicts
@@ -124,10 +148,7 @@ trek teardown
 
 -}
 
-aroundAllMigration :: SpecWith FilePath -> Spec
-aroundAllMigration = aroundAll $
-  \f -> withSystemTempFile "migration" $
-    \filePath h -> hClose h >> f filePath
+
 
 spec :: Spec
 spec = do
