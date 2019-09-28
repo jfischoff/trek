@@ -63,6 +63,9 @@ successfulMigrationRecord = [here|
 }
 |]
 
+conflictingMigrationWarning :: String
+conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"]"
+
 applyListApplicationsSpecs :: SpecWith TestMigrations
 applyListApplicationsSpecs = do
   it "apply without setup fails" $ \TestMigrations {..} -> apply [successfulMigration] `shouldReturn`
@@ -70,6 +73,9 @@ applyListApplicationsSpecs = do
   it "apply returns migration record when successful" $ \TestMigrations {..} -> do
     _ <- setup []
     apply [successfulMigration] `shouldReturn` (ExitSuccess, successfulMigrationRecord, "")
+  it "reports a hash collision error" $ \TestMigrations {..} -> do
+    _ <- setup []
+    apply [conflictingMigration] `shouldReturn` (ExitFailure 32, conflictingMigrationWarning, "")
 
 {-
 > trek migrate FILEPATH
