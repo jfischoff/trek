@@ -65,6 +65,7 @@ extraMigrationRecord = [here|
     , "created_at"     : "12/13/2020"
     }
   ]
+}
 |]
 
 bothRecords :: String
@@ -94,7 +95,33 @@ nothingToApply :: String
 nothingToApply = "Nothing to apply!"
 
 twoApplicationRecords :: String
-twoApplicationRecords = error "twoApplicationRecords"
+twoApplicationRecords = [here|
+[ { "rollback"   : fdsqfg12
+  , "id"         : 1
+  , "migrations" :
+    [ { "name"           : "foo"
+      , "version"        : "12/12/1980"
+      , "hash"           : "xofdshagnosfdasngs"
+      , "rollback"       : "fdsqfg12"
+      , "application_id" : 1
+      , "created_at"     : "12/12/2020"
+      }
+    ]
+  }
+, { "rollback"   : fdsqfg12
+  , "id"         : 2
+  , "migrations" :
+    [ { "name"           : "bar"
+      , "version"        : "12/13/1980"
+      , "hash"           : "barbar"
+      , "rollback"       : "fdsqfg12"
+      , "application_id" : 2
+      , "created_at"     : "12/13/2020"
+      }
+    ]
+  }
+]
+|]
 
 applyListApplicationsSpecs :: SpecWith TestMigrations
 applyListApplicationsSpecs = do
