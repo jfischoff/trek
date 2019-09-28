@@ -2,10 +2,29 @@ module Database.Trek.CmdLineSpec where
 import Database.Trek.CmdLine
 import Test.Hspec
 import System.Exit
+import Control.Concurrent
+import System.IO.Temp
+import System.IO
 
+aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
+aroundAll withFunc specWith = do
+  let start :: IO a
+      start = do
+        var <- newEmptyMVar
 
-setupSpecs :: Spec
-setupSpecs = do
+        withFunc $ putMVar var
+
+        theA <- takeMVar var
+
+        pure theA
+
+      stop :: a -> IO ()
+      stop _ = pure ()
+
+  beforeAll start $ afterAll stop $ specWith
+
+setupTeardownSpecs :: Spec
+setupTeardownSpecs = do
   it "setup doesn't accept arguments" $ setup ["hey"] `shouldReturn`
     (ExitFailure 4, "", "hey is not valid argument for `trek setup`. `trek setup` does not take additional arguments")
   it "setup initially succeed" $ setup [] `shouldReturn` (ExitSuccess, "", "")
@@ -17,6 +36,11 @@ setupSpecs = do
     (ExitFailure 16, "", "Not Setup! Excute `trek setup` to setup\n")
   it "teardown succeeds after setup" $ (setup [] >> teardown [])
     `shouldReturn` (ExitSuccess, "", "")
+
+applyListApplicationsSpecs :: SpecWith FilePath
+applyListApplicationsSpecs = do
+  it "apply without setup fails" $ \migrationFile -> apply [migrationFile] `shouldReturn`
+    (ExitFailure 16, "", "")
 
 {-
 > trek migrate FILEPATH
@@ -97,8 +121,12 @@ trek teardown
 
 -}
 
-
+aroundAllMigration :: SpecWith FilePath -> Spec
+aroundAllMigration = aroundAll $
+  \f -> withSystemTempFile "migration" $
+    \filePath h -> hClose h >> f filePath
 
 spec :: Spec
 spec = do
-  setupSpecs
+  setupTeardownSpecs
+  aroundAllMigration applyListApplicationsSpecs

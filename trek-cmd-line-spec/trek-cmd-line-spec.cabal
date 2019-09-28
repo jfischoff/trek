@@ -36,6 +36,7 @@ library
       base >=4.7 && <5
     , hspec
     , hspec-expectations-lifted
+    , temporary
     , trek-cmd-line-interface
 
   default-language: Haskell2010
