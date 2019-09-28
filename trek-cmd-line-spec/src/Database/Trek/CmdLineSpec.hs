@@ -3,20 +3,14 @@ import Database.Trek.CmdLine
 import Test.Hspec
 import System.Exit
 
-{-
-
-
-> trek setup
-
-> trek setup
-exitcode: 8
-stderr: Setup Already! >:(
--}
 
 setupSpecs :: Spec
 setupSpecs = do
-  it "setup initially succeed" $ setup [] `shouldReturn` (ExitSuccess, [], [])
-
+  it "setup initially succeed" $ setup [] `shouldReturn` (ExitSuccess, "", "")
+  it "setup >> setup fails" $ (setup [] >> setup []) `shouldReturn`
+    (ExitFailure 8, "", "Setup Already! >:(\n")
+  it "teardown fails without setup" $ teardown [] `shouldReturn`
+    (ExitFailure 16, "", "Not Setup! Excute `trek setup` to setup\n")
 
 {-
 > trek migrate FILEPATH
