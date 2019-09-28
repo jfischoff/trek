@@ -55,25 +55,57 @@ setupTeardownSpecs = do
 
 successfulMigrationRecord :: String
 successfulMigrationRecord = [here|
-{ "name"           : "foo"
-, "version"        : "12/12/1980"
-, "hash"           : "xofdshagnosfdasngs"
-, "rollback"       : "fdsqfg12"
-, "application_id" : 1
-, "created_at"     : "12/12/2020"
+{ "rollback"   : fdsqfg12
+, "id"         : 1
+, "migrations" :
+  [ { "name"           : "foo"
+    , "version"        : "12/12/1980"
+    , "hash"           : "xofdshagnosfdasngs"
+    , "rollback"       : "fdsqfg12"
+    , "application_id" : 1
+    , "created_at"     : "12/12/2020"
+    }
+  ]
 }
 |]
 
 extraMigrationRecord :: String
 extraMigrationRecord = [here|
-{ "name"           : "bar"
-, "version"        : "12/12/1980"
-, "hash"           : "barbar"
-, "rollback"       : "fdsqfg12"
-, "application_id" : 1
-, "created_at"     : "12/13/2020"
-}
+{ "rollback"   : fdsqfg12
+, "id"         : 1
+, "migrations" :
+  [ { "name"           : "bar"
+    , "version"        : "12/12/1980"
+    , "hash"           : "barbar"
+    , "rollback"       : "fdsqfg12"
+    , "application_id" : 1
+    , "created_at"     : "12/13/2020"
+    }
+  ]
 |]
+
+bothRecords :: String
+bothRecords = [here|
+  { "rollback"   : fdsqfg12
+  , "id"         : 1
+  , "migrations" :
+    [ { "name"           : "foo"
+      , "version"        : "12/12/1980"
+      , "hash"           : "xofdshagnosfdasngs"
+      , "rollback"       : "fdsqfg12"
+      , "application_id" : 1
+      , "created_at"     : "12/12/2020"
+      }
+    , { "name"           : "bar"
+      , "version"        : "12/12/1980"
+      , "hash"           : "barbar"
+      , "rollback"       : "fdsqfg12"
+      , "application_id" : 1
+      , "created_at"     : "12/13/2020"
+      }
+    ]
+  }
+  |]
 
 conflictingMigrationWarning :: String
 conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"]"
@@ -87,29 +119,24 @@ applyListApplicationsSpecs = do
     apply [successfulMigration] `shouldReturn` (ExitSuccess, successfulMigrationRecord, "")
   it "reports a hash collision error" $ \TestMigrations {..} -> do
     _ <- setup []
-    apply [migrationDirectory] `shouldReturn` (ExitFailure 32, conflictingMigrationWarning, "")
+    _ <- apply [successfulMigration]
+    apply [conflictingMigration] `shouldReturn` (ExitFailure 32, conflictingMigrationWarning, "")
   it "reports a hash collision warning" $ \TestMigrations {..} -> do
     _ <- setup []
-    apply [migrationDirectory, "--warn-hash-conflicts"] `shouldReturn` (ExitSuccess, extraMigrationRecord, conflictingMigrationWarning)
-
+    _ <- apply [successfulMigration]
+    apply [migrationDirectory, "--warn-hash-conflicts"] `shouldReturn`
+      (ExitSuccess, extraMigrationRecord, conflictingMigrationWarning)
+  it "reports a hash collision warning" $ \TestMigrations {..} -> do
+    _ <- setup []
+    _ <- apply [successfulMigration]
+    apply [migrationDirectory, "--no-warn-hash-conflicts"] `shouldReturn`
+      (ExitSuccess, extraMigrationRecord, "")
+  it "migrates more then one in a group" $ \TestMigrations {..} -> do
+    _ <- setup []
+    apply [migrationDirectory] `shouldReturn`
+      (ExitSuccess, bothRecords, "")
 {-
-> trek migrate FILEPATH --warn-hash-conflicts
-stderr: The following versions have hash conflicts [VERSION]
-{ name           : foo
-, version        : 12/12/1980
-, hash           : xofdshagnosfdasngs
-, rollback       : fdsqfg12
-, application_id : 1
-, created_at     : 12/12/2020
-}
-> trek migrate FILEPATH --no-warn-hash-conflicts
-{ name           : foo
-, version        : 12/12/1980
-, hash           : xofdshagnosfdasngs
-, rollback       : fdsqfg12
-, application_id : 1
-, created_at     : 12/12/2020
-}
+
 > trek migrate FILEPATH
 { rollback   : fdsqfg12
 , id         : 1
