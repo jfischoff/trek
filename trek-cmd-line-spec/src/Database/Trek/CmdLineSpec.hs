@@ -140,18 +140,23 @@ applyListApplicationsSpecs = do
     apply [successfulMigration, extraMigration] `shouldReturn`
       (ExitSuccess, bothRecords, "")
 
-  it "migrates more then one in a group" $ \TestMigrations {..} -> do
+  it "errors on empty" $ \TestMigrations {..} -> do
     _ <- setup []
     _ <- apply [successfulMigration]
     apply [successfulMigration] `shouldReturn` (ExitFailure 64, "", nothingToApply)
-{-
 
-> trek migrate FILEPATH
-exitcode: 64
-stderr: Nothing to migrate!
-> trek migrate FILEPATH --warn-empty-migration
-stderr: Nothing to migrate!
-> trek migrate FILEPATH --no-warn-empty-migration
+  it "warns on empty" $ \TestMigrations {..} -> do
+    _ <- setup []
+    _ <- apply [successfulMigration]
+    apply [successfulMigration, "--warn-empty-migration"] `shouldReturn` (ExitSuccess, "", nothingToApply)
+
+  it "ignores on empty" $ \TestMigrations {..} -> do
+    _ <- setup []
+    _ <- apply [successfulMigration]
+    apply [successfulMigration, "--no-warn-empty-migration"] `shouldReturn` (ExitSuccess, "", "")
+
+
+{-
 
 trek hash-conflicts FILEPATH
 exitcode: 16
