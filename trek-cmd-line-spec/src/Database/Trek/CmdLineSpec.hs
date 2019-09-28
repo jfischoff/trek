@@ -27,6 +27,7 @@ data TestMigrations = TestMigrations
   { successfulMigration  :: FilePath
   , conflictingMigration :: FilePath
   , migrationDirectory   :: FilePath
+  , extraMigration       :: FilePath
   }
 
 makeTestMigrations :: FilePath -> TestMigrations
@@ -110,6 +111,9 @@ bothRecords = [here|
 conflictingMigrationWarning :: String
 conflictingMigrationWarning = "The following versions have hash conflicts [\"12/12/1980\"]"
 
+nothingToApply :: String
+nothingToApply = "Nothing to apply!"
+
 applyListApplicationsSpecs :: SpecWith TestMigrations
 applyListApplicationsSpecs = do
   it "apply without setup fails" $ \TestMigrations {..} -> apply [successfulMigration] `shouldReturn`
@@ -124,37 +128,24 @@ applyListApplicationsSpecs = do
   it "reports a hash collision warning" $ \TestMigrations {..} -> do
     _ <- setup []
     _ <- apply [successfulMigration]
-    apply [migrationDirectory, "--warn-hash-conflicts"] `shouldReturn`
+    apply ["--warn-hash-conflicts", migrationDirectory] `shouldReturn`
       (ExitSuccess, extraMigrationRecord, conflictingMigrationWarning)
   it "reports a hash collision warning" $ \TestMigrations {..} -> do
     _ <- setup []
     _ <- apply [successfulMigration]
-    apply [migrationDirectory, "--no-warn-hash-conflicts"] `shouldReturn`
+    apply ["--no-warn-hash-conflicts", migrationDirectory] `shouldReturn`
       (ExitSuccess, extraMigrationRecord, "")
   it "migrates more then one in a group" $ \TestMigrations {..} -> do
     _ <- setup []
-    apply [migrationDirectory] `shouldReturn`
+    apply [successfulMigration, extraMigration] `shouldReturn`
       (ExitSuccess, bothRecords, "")
+
+  it "migrates more then one in a group" $ \TestMigrations {..} -> do
+    _ <- setup []
+    _ <- apply [successfulMigration]
+    apply [successfulMigration] `shouldReturn` (ExitFailure 64, "", nothingToApply)
 {-
 
-> trek migrate FILEPATH
-{ rollback   : fdsqfg12
-, id         : 1
-, migrations :
-  [ { name           : foo
-    , version        : 12/12/1980
-    , hash           : xofdshagnosfdasngs
-    , application_id : 1
-    , created_at     : 12/12/2020
-    }
-  , { name           : foo
-    , version        : 12/12/1981
-    , hash           : xofdshagnosfdasngs
-    , application_id : 1
-    , created_at     : 12/12/2021
-    }
-  ]
-}
 > trek migrate FILEPATH
 exitcode: 64
 stderr: Nothing to migrate!
