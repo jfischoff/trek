@@ -1,3 +1,5 @@
+Tested-With: GHC ==8.8.1
+
 packages: trek-db-test-types/
           trek-db-interface/
           hspec-expectations-monadthrow/

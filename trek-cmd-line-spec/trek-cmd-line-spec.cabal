@@ -39,6 +39,9 @@ library
     , hspec-expectations-lifted
     , temporary
     , trek-cmd-line-interface
+    , tmp-postgres
+    , postgres-options
+    , postgresql-simple-opts
 
   default-language: Haskell2010
 
@@ -46,6 +49,8 @@ library trek-cmd-line-spec-implementation
   exposed-modules: Database.Trek.CmdLine
   default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
   build-depends: base
+    , postgresql-simple-opts
+    , postgresql-simple
   hs-source-dirs: reference-src
   default-language: Haskell2010
   ghc-options: -Wall -Werror
