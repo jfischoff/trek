@@ -4,3 +4,4 @@
   and add a travis config.
 - Some packages have package.yaml's that are not used.
 - I'm on some wierd branch ... that is going to be become master ... at least for now.
+- Had to make repo public to get CI ... oh well.
