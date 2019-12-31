@@ -55,8 +55,8 @@ tags
 
 .cabal-sandbox
 .stack-work
-wreq/.stack-work
-wreq/dist
 .vagrant
 .ghcid
 ghcid.txt
+dist-newstyle/
+cabal.project.local
