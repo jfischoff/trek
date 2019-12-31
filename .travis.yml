@@ -107,19 +107,17 @@ install:
   - |
     echo "packages: trek-db-test-types" >> cabal.project
     echo "packages: trek-db-interface" >> cabal.project
-    echo "packages: hspec-expectations-monadthrow" >> cabal.project
     echo "packages: trek-db-spec" >> cabal.project
     echo "packages: trek-db" >> cabal.project
     echo "packages: trek" >> cabal.project
     echo "packages: trek-cmd-line-interface" >> cabal.project
     echo "packages: trek-cmd-line-spec" >> cabal.project
   - |
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hspec-expectations-monadthrow|trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   - if [ -f "trek-db-test-types/configure.ac" ]; then (cd "trek-db-test-types" && autoreconf -i); fi
   - if [ -f "trek-db-interface/configure.ac" ]; then (cd "trek-db-interface" && autoreconf -i); fi
-  - if [ -f "hspec-expectations-monadthrow/configure.ac" ]; then (cd "hspec-expectations-monadthrow" && autoreconf -i); fi
   - if [ -f "trek-db-spec/configure.ac" ]; then (cd "trek-db-spec" && autoreconf -i); fi
   - if [ -f "trek-db/configure.ac" ]; then (cd "trek-db" && autoreconf -i); fi
   - if [ -f "trek/configure.ac" ]; then (cd "trek" && autoreconf -i); fi
@@ -141,7 +139,6 @@ script:
   - find . -maxdepth 1 -type f -name '*.tar.gz' -exec rm       '{}' \;
   - PKGDIR_trek_db_test_types="$(find . -maxdepth 1 -type d -regex '.*/trek-db-test-types-[0-9.]*')"
   - PKGDIR_trek_db_interface="$(find . -maxdepth 1 -type d -regex '.*/trek-db-interface-[0-9.]*')"
-  - PKGDIR_hspec_expectations_monadthrow="$(find . -maxdepth 1 -type d -regex '.*/hspec-expectations-monadthrow-[0-9.]*')"
   - PKGDIR_trek_db_spec="$(find . -maxdepth 1 -type d -regex '.*/trek-db-spec-[0-9.]*')"
   - PKGDIR_trek_db="$(find . -maxdepth 1 -type d -regex '.*/trek-db-[0-9.]*')"
   - PKGDIR_trek="$(find . -maxdepth 1 -type d -regex '.*/trek-[0-9.]*')"
@@ -153,14 +150,13 @@ script:
   - |
     echo "packages: ${PKGDIR_trek_db_test_types}" >> cabal.project
     echo "packages: ${PKGDIR_trek_db_interface}" >> cabal.project
-    echo "packages: ${PKGDIR_hspec_expectations_monadthrow}" >> cabal.project
     echo "packages: ${PKGDIR_trek_db_spec}" >> cabal.project
     echo "packages: ${PKGDIR_trek_db}" >> cabal.project
     echo "packages: ${PKGDIR_trek}" >> cabal.project
     echo "packages: ${PKGDIR_trek_cmd_line_interface}" >> cabal.project
     echo "packages: ${PKGDIR_trek_cmd_line_spec}" >> cabal.project
   - |
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(hspec-expectations-monadthrow|trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   # Building...
@@ -174,7 +170,6 @@ script:
   # cabal check...
   - (cd ${PKGDIR_trek_db_test_types} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek_db_interface} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_hspec_expectations_monadthrow} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek_db_spec} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek_db} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek} && ${CABAL} -vnormal check)
