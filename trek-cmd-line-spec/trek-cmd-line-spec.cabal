@@ -72,3 +72,4 @@ test-suite test
     , trek-cmd-line-spec-implementation
   default-language: Haskell2010
   mixins: trek-cmd-line-spec
+  build-tool-depends: hspec-discover:hspec-discover

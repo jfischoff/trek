@@ -93,3 +93,4 @@ test-suite test
     , db-test-interface
   default-language: Haskell2010
   mixins: trek-db-spec requires (Database.Trek.Db.Interface as Database.Trek.Db, Database.Trek.Db.TestInterface as Database.Trek.DbTest)
+  build-tool-depends: hspec-discover:hspec-discover
