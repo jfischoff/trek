@@ -1,7 +1,33 @@
 # 1/1/2020
 - Time to figure out how to remove the shutdown function from `SpecState`
 - InterfaceSpec.hs is filled with notes. I have no idea if they are still relevant.
+- So what I have now is
+  ```haskell
+    data SpecStateM m = SpecState
+    { ssRunner   :: forall a. m a -> IO a
+    , ssShutdown :: IO ()
+    }
+  ```
 
+  but I think what I want is
+
+  ```haskell
+  newtype SpecStateM m = SpecStateM { unSpecStateM :: forall a. m a -> IO a }
+  ```
+
+  and I currently have `dbRunner` which is
+
+  ```haskell
+  dbRunner :: IO (SpecStateM DB)
+  ```
+
+  but I think it should be
+
+  ```haskell
+  withDbRunner :: (SpecStateM DB -> IO ()) -> IO ()
+  ```
+
+  I think this fine to change if I am only using `dbRunner` in the `beforeAll` of tests. I only see one use of `dbRunner` so this seems fine.
 
 # 12/31/2019
 
