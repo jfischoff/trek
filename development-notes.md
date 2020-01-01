@@ -53,6 +53,49 @@
 
   The `successfulMigration` I think I get. Actually I'm not sure. It could be a migration that is already applied or one that should be successful. I can't remember what the `extraMigration` is used for but it is common pattern in the code base so I should be able to figure it out.
 
+- `extraMigration` and `successfulMigration` are just two migrations to apply that should succeed. However I am already testing that their application results in specific records. I feel like I should look to see if the migration results can be copied.
+- There are lot of notes in the code about the need for "parsers". I think it has something to do with reusing the core tests on the cmd line interface. I hope I have already written these parsers.
+- I think the things like `successfulMigrationRecord`
+
+  ```haskell
+  successfulMigrationRecord :: String
+  successfulMigrationRecord = [here|
+  { "rollback"   : fdsqfg12
+  , "id"         : 1
+  , "migrations" :
+    [ { "name"           : "foo"
+      , "version"        : "12/12/1980"
+      , "hash"           : "xofdshagnosfdasngs"
+      , "rollback"       : "fdsqfg12"
+      , "application_id" : 1
+      , "created_at"     : "12/12/2020"
+      }
+    ]
+  }
+  |]
+  ```
+
+  Were aspirational. I don't have anything that can produce this output.
+
+- I'm starting to remember where this project is at. I am trying to finish writing the tests for the cmd line interface. I also have to write adapters to the tests.
+- Something I don't get about `applyListApplicationsSpecs` is I think it is duplicate of the stuff in the core tests ... which is what I was trying to avoid. Need to verify.
+- I need to make a diagram of how all the packages relate. I can't remember everything.
+- `apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))` is a little ugly with the `Maybe (Maybe ... )`. Maybe
+   `Setup (Maybe ... )`
+- I think I understand the difference between the core tests and the tests in CmdLineSpec.hs. The tests in a CmdLineSpec are mostly testing exit code and warning messages.
+- I'm not sure that all the tests are necessary. Oh wait I think I get it. The "migrates more then one in a group" test
+  is just to make sure that the output for a list of migrations is what I expect it to be. Yeah I return a single migration if the list is one for some reason and only a list if there are two. This is what I am trying to test.
+- I would need to parse the output to do the other tests.
+- Parsing should be okay because this is all json.
+- I'm missing a lot of tests. Only did `list/apply`
+- Actually that might be all for the simplest version of the migrator ...
+- I think to make a test migration I need to encode the version and name in file path.
+- I think the hash should probably be the id. Hardcoded auto-incremented ids in tests is a
+  great way to make them fragile. If the ids are content addressable I think it will make everything
+  more reliable.
+- The `created_at` looks hard to test as well. I think I should probably be sending it in anyway.
+- I'm not sure I understand why I have `rollback` in there. I assume that is the PiTR key. I don't think I have implemented that A., B. I don't think my first version should worry about that.
+
 # 12/31/2019
 
 - CI is now compiling as much as I am locally. So time to get local compiling. I think I might have quit working on this when I hit a point where `with` would be useful in `tmp-postgres`.
@@ -69,7 +112,6 @@
   doing.
 - The whole code is built around `SpecState` that is a db runner and shutdown function. Instead I should
   use `aroundAll` and the whole thing should just need a "with" interface of (DB a -> IO a).
-
 
 # 12/30/2019
 

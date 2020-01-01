@@ -30,7 +30,7 @@ data TestMigrations = TestMigrations
   }
 
 makeTestMigrations :: FilePath -> TestMigrations
-makeTestMigrations = undefined
+makeTestMigrations migrationDirectory =
 
 aroundAllMigration :: SpecWith TestMigrations -> Spec
 aroundAllMigration = aroundAll $
