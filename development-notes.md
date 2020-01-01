@@ -16,3 +16,5 @@
 - Hopingfully I can modify `trek` to not depend on `postgresql-simple-opts`.
 - I still can't believe I named the package "opts" instead of "options". I spelled out "postgresql-simple" but "options" was too much ... smh.
 - I might be able to fix it by adjusting the dependencies.
+- `therewebe` is using `postgresql-simple-opts`. I must of already fixed it and bumped the version.
+- I fixed it for `postgres-options-0.1.0.1`. It is broken against 0.2.0.0. I just need to fix it.
