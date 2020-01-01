@@ -30,7 +30,28 @@
   I think this fine to change if I am only using `dbRunner` in the `beforeAll` of tests. I only see one use of `dbRunner` so this seems fine.
 
   Addressed in ffd3da3
+- Everything is compiling but the tests are failing with a bunch of `undefine`s causing exceptions.
+- There are few undefines but the one that is failing is:
+  ```haskell
+  makeTestMigrations :: FilePath -> TestMigrations
+  makeTestMigrations = undefined
+  ```
 
+  I'm starting to remember what this file is testing. It is testing that the command line interface works as expected.
+  For the command line version the migrations are files in a directory. I think the idea with `makeTestMigrations` is
+  it is given a temporary directory and makes three migrations:
+
+  ```haskell
+  data TestMigrations = TestMigrations
+    { successfulMigration  :: FilePath
+    , migrationDirectory   :: FilePath
+    , extraMigration       :: FilePath
+   }
+  ```
+
+  The `migrationDirectory` is probably what is passed in to `makeTestMigrations` so I clean it up?
+
+  The `successfulMigration` I think I get. Actually I'm not sure. It could be a migration that is already applied or one that should be successful. I can't remember what the `extraMigration` is used for but it is common pattern in the code base so I should be able to figure it out.
 
 # 12/31/2019
 
