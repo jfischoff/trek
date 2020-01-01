@@ -75,6 +75,7 @@ library db-test-interface
     , tmp-postgres
     , postgresql-simple
     , text
+    , resource-pool
 
 
 test-suite test

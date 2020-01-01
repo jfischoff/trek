@@ -27,6 +27,7 @@ import qualified Data.ByteString.Char8 as BSC
 import Control.Exception
 import Data.Text (Text)
 import Control.Monad (void)
+import Data.Pool
 
 type WorldState = [Text]
 
@@ -79,31 +80,7 @@ rollback :: DB a -> DB a
 rollback = T.rollback
 --
 
-aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
-aroundAll withFunc specWith = do
-  (var, stopper, asyncer) <- runIO $
-    (,,) <$> newEmptyMVar <*> newEmptyMVar <*> newIORef Nothing
-  let theStart :: IO a
-      theStart = do
-
-        thread <- async $ do
-          withFunc $ \x -> do
-            putMVar var x
-            takeMVar stopper
-          pure $ error "Don't evaluate this"
-
-        writeIORef asyncer $ Just thread
-
-        either pure pure =<< (wait thread `race` takeMVar var)
-
-      theStop :: a -> IO ()
-      theStop _ = do
-        putMVar stopper ()
-        traverse_ cancel =<< readIORef asyncer
-
-  beforeAll theStart $ afterAll theStop $ specWith
-
-withSetup :: (Pool Connection -> IO ()) -> IO ()
+withSetup :: (Pool Psql.Connection -> IO ()) -> IO ()
 withSetup f = do
   -- Helper to throw exceptions
   let throwE x = either throwIO pure =<< x

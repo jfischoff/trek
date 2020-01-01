@@ -1,3 +1,8 @@
+# 1/1/2020
+- Time to figure out how to remove the shutdown function from `SpecState`
+- InterfaceSpec.hs is filled with notes. I have no idea if they are still relevant.
+
+
 # 12/31/2019
 
 - CI is now compiling as much as I am locally. So time to get local compiling. I think I might have quit working on this when I hit a point where `with` would be useful in `tmp-postgres`.
@@ -13,7 +18,7 @@
 - Commenting out Database.Trek.ToInterfaceImpl.hashConflicts because I don't remember what I was
   doing.
 - The whole code is built around `SpecState` that is a db runner and shutdown function. Instead I should
-- use `aroundAll` and the whole thing should just need a "with" interface of (DB a -> IO a).
+  use `aroundAll` and the whole thing should just need a "with" interface of (DB a -> IO a).
 
 
 # 12/30/2019

@@ -1,6 +1,6 @@
 module Database.Trek.Db.InterfaceSpec where
 import Test.Hspec.Expectations.Lifted (shouldReturn)
-import Test.Hspec (Arg, Example, Spec, SpecWith, afterAll, beforeAll, describe, it)
+import Test.Hspec hiding (shouldReturn)
 import Control.Monad (void)
 import Data.List.NonEmpty (NonEmpty(..), fromList, cons)
 import Data.Foldable
@@ -9,6 +9,9 @@ import Database.Trek.Db.TestInterface
 import Database.Trek.Db.TestInterface.Types
 import Data.Maybe
 import Control.Monad (join)
+import Control.Concurrent
+import Control.Concurrent.Async
+import Data.IORef
 
 {-
 
@@ -261,6 +264,30 @@ partitions (x:xs) = [[x]:p | p <- partitions xs]
 -------------------------------------------------------------------------------
 -- Hspec helper
 -------------------------------------------------------------------------------
+aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
+aroundAll withFunc specWith = do
+  (var, stopper, asyncer) <- runIO $
+    (,,) <$> newEmptyMVar <*> newEmptyMVar <*> newIORef Nothing
+  let theStart :: IO a
+      theStart = do
+
+        thread <- async $ do
+          withFunc $ \x -> do
+            putMVar var x
+            takeMVar stopper
+          pure $ error "Don't evaluate this"
+
+        writeIORef asyncer $ Just thread
+
+        either pure pure =<< (wait thread `race` takeMVar var)
+
+      theStop :: a -> IO ()
+      theStop _ = do
+        putMVar stopper ()
+        traverse_ cancel =<< readIORef asyncer
+
+  beforeAll theStart $ afterAll theStop $ specWith
+
 withTestDB :: SpecWith SpecState -> Spec
 withTestDB = beforeAll dbRunner . afterAll ssShutdown
 -------------------------------------------------------------------------------
