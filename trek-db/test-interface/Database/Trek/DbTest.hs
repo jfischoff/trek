@@ -8,10 +8,6 @@ module Database.Trek.DbTest
   , worldState
   , clear
   , rollback
-  , createTempConnection
-  , setupDB
-  , shutDownDB
-  , toSpecState
   , dbRunner
   ) where
 import Database.Trek.Db
@@ -23,7 +19,6 @@ import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Transact as T
 import qualified Database.PostgreSQL.Simple as Psql
 import Database.PostgreSQL.Simple.SqlQQ
-import qualified Data.ByteString.Char8 as BSC
 import Control.Exception
 import Data.Text (Text)
 import Control.Monad (void)
@@ -79,35 +74,16 @@ clear = void $ T.execute_ [sql|
 rollback :: DB a -> DB a
 rollback = T.rollback
 --
-
 withSetup :: (Pool Psql.Connection -> IO ()) -> IO ()
 withSetup f = do
   -- Helper to throw exceptions
   let throwE x = either throwIO pure =<< x
 
-  throwE $ withDbCache $ \dbCache -> do
-    let combinedConfig = defaultConfig <> cacheConfig dbCache
-    migratedConfig <- throwE $ cacheAction ("~/.tmp-postgres/" <> hash) migrate combinedConfig
-    withConfig migratedConfig $ \db ->
-      f =<< createPool (connectPostgreSQL $ toConnectionString db) close 2 60 10
-
-createTempConnection :: IO (Psql.Connection, Temp.DB)
-createTempConnection = do
-  db <- either throwIO pure =<< Temp.start Temp.defaultOptions
-  connection <- Psql.connectPostgreSQL $ BSC.pack $ Temp.connectionString db
-  return (connection, db)
-
--- Either run the job or not
-setupDB :: IO (Psql.Connection, Temp.DB)
-setupDB = do
-  (connection, db) <- createTempConnection
-  return (connection, db)
-
-shutDownDB :: Psql.Connection -> Temp.DB -> IO ()
-shutDownDB c x = void $ Psql.close c >> Temp.stop x
-
-toSpecState :: Psql.Connection -> Temp.DB -> IO (SpecStateM DB)
-toSpecState conn = pure . SpecState (flip T.runDBTSerializable conn) . shutDownDB conn
+  throwE $ Temp.withDbCache $ \dbCache -> do
+    let combinedConfig = Temp.defaultConfig <> Temp.cacheConfig dbCache
+    Temp.withConfig combinedConfig $ \db ->
+      f =<< createPool (Psql.connectPostgreSQL $ Temp.toConnectionString db) Psql.close 2 60 10
 
 dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
-dbRunner = setupDB >>= uncurry toSpecState
+dbRunner f = withSetup $ \pool ->
+  withResource pool $ \conn -> f $ SpecState (flip T.runDBTSerializable conn)

@@ -29,6 +29,9 @@
 
   I think this fine to change if I am only using `dbRunner` in the `beforeAll` of tests. I only see one use of `dbRunner` so this seems fine.
 
+  Addressed in ffd3da3
+
+
 # 12/31/2019
 
 - CI is now compiling as much as I am locally. So time to get local compiling. I think I might have quit working on this when I hit a point where `with` would be useful in `tmp-postgres`.
