@@ -8,6 +8,13 @@
 - I might be able to fix it by adjusting the dependencies.
 - `therewebe` is using `postgresql-postgresql-simple-opts >= 0.6.0.0`. I must of already fixed it and bumped the version.
 - I fixed it for `postgres-options-0.1.0.1`. It is broken against 0.2.0.0. I just need to fix it.
+- The readme I am copying around could be very wrong.
+- Fixed the `postgresql-simple-opts` version issues. Now onto a `tmp-postgres` error.
+- Commenting out Database.Trek.ToInterfaceImpl.hashConflicts because I don't remember what I was
+  doing.
+- The whole code is built around `SpecState` that is a db runner and shutdown function. Instead I should
+- use `aroundAll` and the whole thing should just need a "with" interface of (DB a -> IO a).
+
 
 # 12/30/2019
 

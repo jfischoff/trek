@@ -19,7 +19,7 @@ import Database.Trek.Db.TestInterface.Types
 import Data.List.NonEmpty (NonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time.QQ
-import qualified Database.Postgres.Temp.Internal as Temp
+import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Transact as T
 import qualified Database.PostgreSQL.Simple as Psql
 import Database.PostgreSQL.Simple.SqlQQ
@@ -78,6 +78,41 @@ clear = void $ T.execute_ [sql|
 rollback :: DB a -> DB a
 rollback = T.rollback
 --
+
+aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
+aroundAll withFunc specWith = do
+  (var, stopper, asyncer) <- runIO $
+    (,,) <$> newEmptyMVar <*> newEmptyMVar <*> newIORef Nothing
+  let theStart :: IO a
+      theStart = do
+
+        thread <- async $ do
+          withFunc $ \x -> do
+            putMVar var x
+            takeMVar stopper
+          pure $ error "Don't evaluate this"
+
+        writeIORef asyncer $ Just thread
+
+        either pure pure =<< (wait thread `race` takeMVar var)
+
+      theStop :: a -> IO ()
+      theStop _ = do
+        putMVar stopper ()
+        traverse_ cancel =<< readIORef asyncer
+
+  beforeAll theStart $ afterAll theStop $ specWith
+
+withSetup :: (Pool Connection -> IO ()) -> IO ()
+withSetup f = do
+  -- Helper to throw exceptions
+  let throwE x = either throwIO pure =<< x
+
+  throwE $ withDbCache $ \dbCache -> do
+    let combinedConfig = defaultConfig <> cacheConfig dbCache
+    migratedConfig <- throwE $ cacheAction ("~/.tmp-postgres/" <> hash) migrate combinedConfig
+    withConfig migratedConfig $ \db ->
+      f =<< createPool (connectPostgreSQL $ toConnectionString db) close 2 60 10
 
 createTempConnection :: IO (Psql.Connection, Temp.DB)
 createTempConnection = do
