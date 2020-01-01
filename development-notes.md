@@ -15,3 +15,4 @@
 - `postgresql-simple-opts` is busted. I was kinda of hoping I would not have to fix that right away. This is the problem and value of dog fooding I guess.
 - Hopingfully I can modify `trek` to not depend on `postgresql-simple-opts`.
 - I still can't believe I named the package "opts" instead of "options". I spelled out "postgresql-simple" but "options" was too much ... smh.
+- I might be able to fix it by adjusting the dependencies.
