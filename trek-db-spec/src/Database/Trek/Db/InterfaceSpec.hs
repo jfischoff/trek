@@ -289,7 +289,7 @@ aroundAll withFunc specWith = do
   beforeAll theStart $ afterAll theStop $ specWith
 
 withTestDB :: SpecWith SpecState -> Spec
-withTestDB = beforeAll dbRunner . afterAll ssShutdown
+withTestDB = aroundAll dbRunner
 -------------------------------------------------------------------------------
 -- Schema clearing
 -------------------------------------------------------------------------------

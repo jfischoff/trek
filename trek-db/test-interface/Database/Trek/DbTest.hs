@@ -109,5 +109,5 @@ shutDownDB c x = void $ Psql.close c >> Temp.stop x
 toSpecState :: Psql.Connection -> Temp.DB -> IO (SpecStateM DB)
 toSpecState conn = pure . SpecState (flip T.runDBTSerializable conn) . shutDownDB conn
 
-dbRunner :: IO (SpecStateM DB)
+dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
 dbRunner = setupDB >>= uncurry toSpecState

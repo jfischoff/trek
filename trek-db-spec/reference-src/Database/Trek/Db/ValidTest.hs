@@ -32,8 +32,5 @@ rollback action = do
   put oldState
   pure r
 
-dbRunner :: IO (SpecStateM DB)
-dbRunner = pure $ SpecState
-  { ssRunner   = flip evalStateT initialWorldState
-  , ssShutdown = pure ()
-  }
+dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
+dbRunner f = f $  SpecState (flip evalStateT initialWorldState)

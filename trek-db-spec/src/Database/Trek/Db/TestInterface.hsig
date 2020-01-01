@@ -24,5 +24,4 @@ clear :: DB ()
 
 rollback :: DB a -> DB a
 
-dbRunner :: IO (SpecStateM DB)
-
+dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
