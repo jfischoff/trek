@@ -1,49 +1,51 @@
-# trek
+# Aspirational README. WIP.
 
-## `trek` Core the library
+`trek` is a simple database migrator. It has two commands: `create` and `apply`.
 
-The `trek-core` library provides the base functionality for an migration system.
+## `trek create`
 
-## `trek` the Executable
+### Example
+```bash
+$ trek create NAME
+```
+### Description
 
-`trek` is a database migration system. Unlike most database migration systems `trek` is designed to handle development and QA workflows which reapply the same migration (version) with alter contents.
+`create` uses current date time to make a sql file in the proper format for `apply`.
 
-The `trek` production workflow is very similar to other popular migration systems like `Active Migration`.
+`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME`.
 
-The three workflows, `dev`, `qa` and `prod` are described below.
+`create` will return a exit code of `1` if the file creation fails for any reason.
 
-Currently on PostreSQL is supported.
+## `trek apply`
 
-### `dev` Workflow
+### Example
+```bash
+$ trek apply DIRPATH
+{ "created_at" : "2020-01-01T22:31:04"
+, "migrations" :
+    [ { "name"    : "foo"
+      , "version" : "2019-01-01T22:31:04"
+      , "hash"    : "xofdshagnosfdasngs"
+      }
+    , { "name"    : "bar"
+      , "version" : "2019-02-01T22:31:04"
+      , "hash"    : "barbar"
+      }
+    ]
+}
+```
 
-The dev workflow is built for a single developer that uses a test database which can be discarded and recovered. If an already applied migration has been modified `trek` will dump the db and recreate it from scratch.
+### Description
 
-### `qa` Workflow
+`apply` applies the migrations in the `DIRPATH`.
 
-The `qa` workflow is a little more intelligent than the `dev` workflow. It is meant for a persistent QA environment that is backed up and has complex data one would not like to lose. If an already applied migration changes `trek` will find the backup that was taken before the migration was applied and restore to that point and then roll forward. In this way the data lost is much less than in the `dev` workflow but one needs to have a db backup strategy in place which is overkill for `dev`.
+If `DIRPATH` is not in the proper format `apply` will fail.
+- if `DIRPATH` contains zero `*.sql` files `apply` returns a exit code of `1`.
+- if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `2`.
 
-### `prod` Workflow
+Otherwise `apply` will execute the non-applied queries in `DIRPATH`
+together in a single `SERIALIZABLE` transaction.
 
-The `prod` workflow lacks the ability to check if a migration has been modified. It can only apply unapplied migrations.
+If any of the sql files fail the transaction will be aborted and `trek` will return an exit code of `3`.
 
-## Reducing Drift
-
-One of the goals of `trek` is to help allow developers to test against what is in production. To help reduce drift between what is in production and the database schema one would obtain by applying all of the migrations in sequence, `trek` can utilize schema dumps of production.
-
-`trek` supports this optional workflow and provides convience functions for restore QA using a schema dump so that the two persistent environments (QA and production) do not drift from each other.
-
-This is feature `trek` shares with other migration systems as well.
-
-### Other Features Common in Migration Systems
-- Dry run with detailed statistics (tables modified and estimate size of the change)
-- Transaction control (single, multiple, etc)
-- Metrics integration (Timing, counts, etc)
-- Detailed logging
-- Rich command line
-- Audit log of all migrations
-
-### Other Features Missing
-- Configurable Migrations phases Seeding e.g. data loading
-
-
-
+`apply` returns a JSON list of migrations entries if the exit code is `0` as seen in the example above. *The formatting of `trek` JSON is not shown*.

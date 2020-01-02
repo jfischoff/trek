@@ -1,0 +1,2 @@
+- #8 Document Design 1.0.0.0
+- #9 Finish CmdLineSpec.hs
