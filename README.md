@@ -1,4 +1,4 @@
-# Aspirational README. WIP.
+# Aspirational README. WIP. Does **not** compile.
 
 `trek` is a simple database migrator. It has two commands: `create` and `apply`.
 
