@@ -10,9 +10,11 @@ $ trek create NAME
 ```
 ### Description
 
-`create` uses current date time to make a sql file in the proper format for `apply`.
+#### Successful Behavior
 
-`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME`.
+`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME` using the current date time as ISO8061 `VERSION`.
+
+#### Errors
 
 `create` will return a exit code of `1` if the file creation fails for any reason.
 
@@ -37,15 +39,14 @@ $ trek apply DIRPATH
 
 ### Description
 
-`apply` applies the migrations in the `DIRPATH`.
+#### Successful Behavior
 
-If `DIRPATH` is not in the proper format `apply` will fail.
-- if `DIRPATH` contains zero `*.sql` files `apply` returns a exit code of `1`.
-- if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `2`.
+`apply` executes the the non-applied migrations in `DIRPATH` together in a single `SERIALIZABLE` transaction.
 
-Otherwise `apply` will execute the non-applied queries in `DIRPATH`
-together in a single `SERIALIZABLE` transaction.
+`apply` returns a JSON list of migrations entries as seen in the example above. *The formatting of `trek` JSON is not shown*.
 
-If any of the sql files fail the transaction will be aborted and `trek` will return an exit code of `3`.
+#### Errors
 
-`apply` returns a JSON list of migrations entries if the exit code is `0` as seen in the example above. *The formatting of `trek` JSON is not shown*.
+- If any of the sql files fail the transaction will be aborted and `trek` will return an exit code of `1`.
+- if `DIRPATH` contains zero `*.sql` files `apply` returns a exit code of `2`.
+- if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `3`.
