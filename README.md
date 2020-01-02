@@ -12,7 +12,7 @@ $ trek create NAME
 
 #### Successful Behavior
 
-`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME` using the current date time as ISO8061 `VERSION`.
+`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME` using the current date time as ISO8601 `VERSION`.
 
 #### Errors
 
