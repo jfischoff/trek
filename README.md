@@ -41,7 +41,7 @@ $ trek apply DIRPATH
 
 #### Successful Behavior
 
-`apply` executes the the non-applied migrations in `DIRPATH` together in a single `SERIALIZABLE` transaction.
+`apply` executes the the non-applied migrations (`*.sql` files) in `DIRPATH` together in a single `SERIALIZABLE` transaction.
 
 `apply` returns a JSON list of migrations entries as seen in the example above. *The formatting of `trek` JSON is not shown*.
 

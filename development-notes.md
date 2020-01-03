@@ -1,3 +1,8 @@
+# 1/2/2020
+- I can simplify `CmdLineSpec.hs`. I can remove all of the `listApplications` stuff.
+- I should remove it all together. Better to make things simplier while I am still figuring out the interface.
+  I can always bring it back.
+- I don't get this `apply :: [FilePath]` function
 # 1/1/2020
 - Time to figure out how to remove the shutdown function from `SpecState`
 - InterfaceSpec.hs is filled with notes. I have no idea if they are still relevant.

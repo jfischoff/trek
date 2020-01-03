@@ -1,2 +1,1 @@
-- #10 Document that the standard postgres envs are used for connections
 - #9 Finish CmdLineSpec.hs
