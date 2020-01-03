@@ -1,2 +1,2 @@
-- #8 Document Design 1.0.0.0
+- #10 Document that the standard postgres envs are used for connections
 - #9 Finish CmdLineSpec.hs

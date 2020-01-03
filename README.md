@@ -50,3 +50,7 @@ $ trek apply DIRPATH
 - If any of the sql files fail the transaction will be aborted and `trek` will return an exit code of `1`.
 - if `DIRPATH` contains zero `*.sql` files `apply` returns a exit code of `2`.
 - if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `3`.
+
+#### Environment Variables
+
+You can configure `trek` by setting the standard postgres connection [parameters](https://www.postgresql.org/docs/current/libpq-envars.html).
