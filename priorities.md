@@ -1,1 +1,2 @@
-- #9 Finish CmdLineSpec.hs
+- Change cmdline interface #11
+- Finish CmdLineSpec.hs #9
