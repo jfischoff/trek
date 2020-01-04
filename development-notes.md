@@ -1,8 +1,18 @@
+# 1/3/2020
+- I question whether I can use the core tests for the MVP interface.
+- The self setup `apply` has fewer tests cases. I think it is a subset of the `apply` with `setup`.
+- Every `apply` with `setup` can be used to instaniate a `apply` with auto-setup interface.
+- I don't like the `CmdLine.hsig`. For one thing it assumes it gets a list of command line arguments but no
+  environment variables.
+- I think `apply :: IO ()` is probably the right interface. I can hopefully catch the `ExitFailure`s.
+- I will need to capture its standard handles when testing.
+
 # 1/2/2020
 - I can simplify `CmdLineSpec.hs`. I can remove all of the `listApplications` stuff.
 - I should remove it all together. Better to make things simplier while I am still figuring out the interface.
   I can always bring it back.
 - I don't get this `apply :: [FilePath]` function
+
 # 1/1/2020
 - Time to figure out how to remove the shutdown function from `SpecState`
 - InterfaceSpec.hs is filled with notes. I have no idea if they are still relevant.
