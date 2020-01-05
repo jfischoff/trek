@@ -12,14 +12,11 @@ description:    Please see the README on GitHub at <https://github.com/githubuse
 homepage:       https://github.com/githubuser/trek#readme
 bug-reports:    https://github.com/githubuser/trek/issues
 author:         Author name here
-maintainer:     example@example.com
+maintainer:     jonathangfischoff at gmail.com
 copyright:      2019 Jonathan Fischoff
 license:        BSD3
 license-file:   LICENSE
 build-type:     Simple
-extra-source-files:
-    README.md
-    ChangeLog.md
 tested-with: GHC==8.8.1
 
 source-repository head
