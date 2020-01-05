@@ -5,6 +5,9 @@ import Test.Hspec
 import Control.Concurrent
 import System.IO.Temp
 import Data.String.Here
+import qualified Database.Postgres.Temp as Temp
+import Control.Exception
+import Data.ByteString
 
 aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
 aroundAll withFunc specWith = do
@@ -23,18 +26,19 @@ aroundAll withFunc specWith = do
 
   beforeAll start $ afterAll stop $ specWith
 
-data TestMigrations = TestMigrations
-  { successfulMigration  :: FilePath
-  , migrationDirectory   :: FilePath
-  , extraMigration       :: FilePath
-  }
+withSetup :: (ByteString -> IO ()) -> IO ()
+withSetup f = do
+  -- Helper to throw exceptions
+  let throwE x = either throwIO pure =<< x
 
-makeTestMigrations :: FilePath -> TestMigrations
-makeTestMigrations _migrationDirectory = undefined
+  throwE $ Temp.withDbCache $ \dbCache -> do
+    let combinedConfig = Temp.defaultConfig <> Temp.cacheConfig dbCache
+    Temp.withConfig combinedConfig $ f . Temp.toConnectionString
 
-aroundAllMigration :: SpecWith TestMigrations -> Spec
+aroundAllMigration :: SpecWith (FilePath, ByteString) -> Spec
 aroundAllMigration = aroundAll $
-  \f -> withSystemTempDirectory "migration" $ f . makeTestMigrations
+  \f -> withSystemTempDirectory "migration" $ \dir ->
+    withSetup $ \connStr -> f (dir, connStr)
 
 successfulMigrationRecord :: String
 successfulMigrationRecord = [here|
@@ -83,7 +87,5 @@ bothRecords = [here|
 nothingToApply :: String
 nothingToApply = "Nothing to apply!"
 
-
 spec :: Spec
-spec = do
-  aroundAllMigration applyListApplicationsSpecs
+spec = aroundAllMigration $ pure ()
