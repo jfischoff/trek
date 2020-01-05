@@ -10,6 +10,7 @@
   - cabal v2-build --dep all (this is working now ... not sure if it would work from a clean. Need to check.)
   - Even after install the non test deps I can't install the test deps.
   - I think I am going to have to manually include test deps in the non-test parts.
+- Remove CI cache and pray.
 
 # 1/4/2020
 - Here is my current way I would describe this project.
