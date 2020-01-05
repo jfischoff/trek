@@ -1,4 +1,3 @@
-- Remove `rollback` from output #6
 - Finish CmdLineSpec.hs #9
 - Remove setup apply #13
 - Add a `fromFilePath :: FilePath -> DB ()` to Database.Trek.Db.Interface.hsig #12

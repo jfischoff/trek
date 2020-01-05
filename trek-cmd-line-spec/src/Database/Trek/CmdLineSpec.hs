@@ -38,13 +38,11 @@ aroundAllMigration = aroundAll $
 
 successfulMigrationRecord :: String
 successfulMigrationRecord = [here|
-{ "rollback"   : fdsqfg12
-, "id"         : 1
+{ "id"         : "503dc144019a6d61db66b854c6e01127b94f644d"
 , "migrations" :
   [ { "name"           : "foo"
     , "version"        : "12/12/1980"
     , "hash"           : "xofdshagnosfdasngs"
-    , "application_id" : 1
     , "created_at"     : "12/12/2020"
     }
   ]
@@ -53,13 +51,11 @@ successfulMigrationRecord = [here|
 
 extraMigrationRecord :: String
 extraMigrationRecord = [here|
-{ "rollback"   : fdsqfg12
-, "id"         : 1
+{ "id"         : "503dc144019a6d61db66b854c6e01127b94f644d"
 , "migrations" :
   [ { "name"           : "bar"
     , "version"        : "12/12/1980"
     , "hash"           : "barbar"
-    , "application_id" : 1
     , "created_at"     : "12/13/2020"
     }
   ]
@@ -68,19 +64,16 @@ extraMigrationRecord = [here|
 
 bothRecords :: String
 bothRecords = [here|
-  { "rollback"   : fdsqfg12
-  , "id"         : 1
+  { "id"         : "503dc144019a6d61db66b854c6e01127b94f644d"
   , "migrations" :
     [ { "name"           : "foo"
       , "version"        : "12/12/1980"
-      , "hash"           : "xofdshagnosfdasngs"
-      , "application_id" : 1
+      , "hash"           : "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
       , "created_at"     : "12/12/2020"
       }
     , { "name"           : "bar"
       , "version"        : "12/12/1980"
-      , "hash"           : "barbar"
-      , "application_id" : 1
+      , "hash"           : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
       , "created_at"     : "12/13/2020"
       }
     ]
@@ -92,24 +85,20 @@ nothingToApply = "Nothing to apply!"
 
 twoApplicationRecords :: String
 twoApplicationRecords = [here|
-[ { "rollback"   : fdsqfg12
-  , "id"         : 1
+[ { "id"         : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
   , "migrations" :
     [ { "name"           : "foo"
       , "version"        : "12/12/1980"
-      , "hash"           : "xofdshagnosfdasngs"
-      , "application_id" : 1
+      , "hash"           : "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
       , "created_at"     : "12/12/2020"
       }
     ]
   }
-, { "rollback"   : fdsqfg12
-  , "id"         : 2
+, { "id"         : "503dc144019a6d61db66b854c6e01127b94f644d"
   , "migrations" :
     [ { "name"           : "bar"
       , "version"        : "12/13/1980"
-      , "hash"           : "barbar"
-      , "application_id" : 2
+      , "hash"           : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
       , "created_at"     : "12/13/2020"
       }
     ]
