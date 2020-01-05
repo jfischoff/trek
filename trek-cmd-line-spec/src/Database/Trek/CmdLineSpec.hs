@@ -83,28 +83,6 @@ bothRecords = [here|
 nothingToApply :: String
 nothingToApply = "Nothing to apply!"
 
-twoApplicationRecords :: String
-twoApplicationRecords = [here|
-[ { "id"         : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
-  , "migrations" :
-    [ { "name"           : "foo"
-      , "version"        : "12/12/1980"
-      , "hash"           : "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
-      , "created_at"     : "12/12/2020"
-      }
-    ]
-  }
-, { "id"         : "503dc144019a6d61db66b854c6e01127b94f644d"
-  , "migrations" :
-    [ { "name"           : "bar"
-      , "version"        : "12/13/1980"
-      , "hash"           : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
-      , "created_at"     : "12/13/2020"
-      }
-    ]
-  }
-]
-|]
 
 spec :: Spec
 spec = do
