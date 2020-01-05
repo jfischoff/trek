@@ -1,5 +1,4 @@
 signature Database.Trek.CmdLine where
-import System.Exit(ExitCode)
 
-apply            :: [String] -> IO (ExitCode, String, String)
-listApplications :: [String] -> IO (ExitCode, String, String)
+apply :: IO ()
+create :: IO ()
