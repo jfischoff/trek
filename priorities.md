@@ -1,4 +1,3 @@
-- Get CI working #1
 - Remove `rollback` from output #6
 - Finish CmdLineSpec.hs #9
 - Remove setup apply #13
