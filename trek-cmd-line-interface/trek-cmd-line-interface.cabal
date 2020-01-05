@@ -29,5 +29,5 @@ library
   signatures: Database.Trek.CmdLine
   hs-source-dirs: src
   ghc-options: -Wall
-  build-depends: base
+  build-depends: base < 4.14.0.0
   default-language: Haskell2010

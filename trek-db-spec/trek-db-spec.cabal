@@ -49,7 +49,7 @@ library trek-db-spec-implementation
   exposed-modules: Database.Trek.Db.Valid
                  , Database.Trek.Db.ValidTest
   default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
-  build-depends: base
+  build-depends: base < 4.14.0.0
                  , mtl
                  , trek-db-test-types
   hs-source-dirs: reference-src

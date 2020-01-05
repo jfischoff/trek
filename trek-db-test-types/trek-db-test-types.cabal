@@ -31,4 +31,4 @@ library
   hs-source-dirs: src
   default-extensions: RankNTypes
   ghc-options: -Wall
-  build-depends: base
+  build-depends: base < 4.14.0.0

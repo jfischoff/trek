@@ -64,7 +64,7 @@ library db-test-interface
       test-interface
   default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
   ghc-options: -Wall
-  build-depends: base
+  build-depends: base < 4.14.0.0
     , trek-db
     , trek-db-test-types
     , semigroups

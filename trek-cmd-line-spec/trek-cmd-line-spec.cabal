@@ -48,7 +48,7 @@ library
 library trek-cmd-line-spec-implementation
   exposed-modules: Database.Trek.CmdLine
   default-extensions: NamedFieldPuns, QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DeriveGeneric DeriveAnyClass TupleSections FlexibleContexts DerivingStrategies
-  build-depends: base
+  build-depends: base < 4.14.0.0
     , postgresql-simple-opts >= 0.6.0.0
     , postgresql-simple
   hs-source-dirs: reference-src
