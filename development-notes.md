@@ -11,6 +11,13 @@
     to reuse the tests.
   - If a core test fails against the executable we can rerun on different levels to find where it is breaking.
 
+- Things I need to do
+  - Make the autosetup `apply` only hsig (and project!).
+  - Make the `apply` with `setup` adapter.
+  - Refactor the `apply` properties to the autosetup Spec and have the with `setup` Spec depend on it.
+  - Make the new cmdline hsig.
+  - Make the `apply :: IO ()` adapter for the core properties.
+  - Finish the tests for cmd line interface.
 
 # 1/3/2020
 - I question whether I can use the core tests for the MVP interface.
