@@ -106,9 +106,6 @@ twoApplicationRecords = [here|
 ]
 |]
 
-applyListApplicationsSpecs :: SpecWith TestMigrations
-applyListApplicationsSpecs = pure ()
-
 spec :: Spec
 spec = do
   aroundAllMigration applyListApplicationsSpecs
