@@ -1,5 +1,4 @@
 signature Database.Trek.Db.Interface where
-import Data.List.NonEmpty (NonEmpty)
 import Control.Monad.IO.Class
 
 data DB a
@@ -9,27 +8,10 @@ instance Applicative DB
 instance Monad DB
 instance MonadIO DB
 
-data Version
-
-instance Show Version
-instance Eq Version
-instance Ord Version
-
-data InputMigration
-
 data InputGroup
 
 data OutputGroup
-
 instance Show OutputGroup
 instance Eq OutputGroup
 
-inputGroup :: NonEmpty InputMigration -> InputGroup
-
--- Main API
-setup            ::                    DB (Maybe ())
--- Requires setup
-teardown         ::                    DB (Maybe ())
-apply            :: InputGroup      -> DB (Maybe (Maybe OutputGroup))
-listApplications ::                    DB (Maybe [OutputGroup])
-hashConflicts    :: [InputMigration]-> DB (Maybe [Version])
+apply :: InputGroup -> DB (Maybe OutputGroup)
