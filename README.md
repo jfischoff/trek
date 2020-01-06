@@ -15,6 +15,8 @@ $ trek create NAME
 
 `create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME` using the current date time as ISO8601 `VERSION`.
 
+If the file exists `create` will retry **one time only** with a version incremented by one second.
+
 #### Errors
 
 `create` will return a exit code of `1` if the file creation fails for any reason.
