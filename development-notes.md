@@ -12,6 +12,67 @@
 
 - I think I am going to simplify the interface and then see if I can rewrite the tests without the test interface.
 
+- Removing some notes from `InterfaceSpec.hs` to here for prosperity.
+
+      the migrate filePath -> dispatches based type of file
+      if it is a directory it tries to load each file
+      -- it dispatches of the file type
+      if it is a file it loads it as a newline manifest
+      if it is a sql file it runs it and using the name to determine the migration
+      if it is a sh it runs it
+
+      Crazy idea. I can test the migrate filePath implementations with the same test interface
+
+      Crazy idea more the exe can shelf test the extension scripts
+
+      trek add-hashes [VERSION]
+
+      trek remove-hashes [VERSION]
+
+      Some ideas
+
+      need to make the job runner next
+
+      data Job = Job
+        { batch :: LastRow -> DB [Row]
+        , rowKey :: Row -> LastRow
+        , action :: Row -> DB ()
+        }
+
+      And the coordinator that can take a migration and turn it into a sequence of
+      migrations and jobs followed by code deployments.
+
+      These might all be migrators
+
+      The job system is sort of like a migration system that has a status
+      The job system updates the migration until it is finished.
+
+      The code deployment doesn't push something that is already out there
+
+      Every thing is idepotent. It is basically a system for ensure idepotency
+
+      but they are idepotent in different ways.
+      The migration system does something or not.
+      The job is incremental and updates state
+      The code deployment is based on the output hash.
+
+      Not clear how to have a single interface yet ... if at all.
+
+      an interesting question is whether the system can handle concurrency. It should
+      be able to
+
+      A table lock sounds reasonable
+
+      Some thoughts about the bigger picture. This is not just a migrator.
+      It is a way to store actions to help achieve idempotency. The fact
+      that it can do that easily for DB actions is a special case. Because
+      we can lift into the DB (or perhaps it should be abstracted to a different
+      monad) we can embed arbitrary IO.
+
+      In this way the migrator can orchanstrate the steps to a zero down time
+      deployment.
+
+
 # 1/5/2020
 - I've decided that the extra work of writing adapters to maintain the more complex db core is not the fastest path. I should remove the functionality and only maintain a db core that has the interface the cmd line interface supports.
 - However before I start the process of removing the features, I should get what I currently have to compile in some sense.
