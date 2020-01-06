@@ -11,6 +11,11 @@
   - Even after install the non test deps I can't install the test deps.
   - I think I am going to have to manually include test deps in the non-test parts.
 - Remove CI cache and pray.
+- The `trek-db-spec` has a reference implementation that is pure that is used to test the spec. I wanted to do the same thing with `trek-cmd-line-spec` but I don't think I can make a pure implementation because it needs to connect to the db. That is part of what I am testing I think. That it can parse the environment variables and connect.
+- I think I could make a reference implementation using IORefs that doesn't connect to a the db. I don't see all the pieces right now and I am not sure if it is worth it.
+- I need to list out the tests for `apply` and `create`
+- If I am going to test that the hashes are something specific I need to specify the way the application `hash` is
+  calculated. I could just concat the hashes and hash the result. However then I would have an identical hash for the application and migration which would make them not globally unique. However if I append "application|" to the hash I could maintain global uniqueness probably. I'm going to do the former but I have to document it either way.
 
 # 1/4/2020
 - Here is my current way I would describe this project.

@@ -26,15 +26,16 @@ If the file exists `create` will retry **one time only** with a version incremen
 ### Example
 ```bash
 $ trek apply DIRPATH
-{ "created_at" : "2020-01-01T22:31:04"
+{ "hash" : "503dc144019a6d61db66b854c6e01127b94f644d"
+, "created_at" : "2020-01-01T22:31:04"
 , "migrations" :
     [ { "name"    : "foo"
       , "version" : "2019-01-01T22:31:04"
-      , "hash"    : "xofdshagnosfdasngs"
+      , "hash"    : "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
       }
     , { "name"    : "bar"
       , "version" : "2019-02-01T22:31:04"
-      , "hash"    : "barbar"
+      , "hash"    : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
       }
     ]
 }
