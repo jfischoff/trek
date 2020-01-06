@@ -12,6 +12,14 @@
 
 - I think I am going to simplify the interface and then see if I can rewrite the tests without the test interface.
 
+- Including the `inputGroup` in the interface was a way to ensure that `InputGroup` was non-empty ... but it can't do that anyway.
+- There is nothing about the interface that points to it not handling an empty inputgroup. That is not something that core checks.
+- I think what is needed for testing is `toOutput :: InputMigration -> OutputRecord` but I can't in general compute that. For instance if a rollback PiTR label is generated, or if anything is generated in the DB. I think preventing that from happening is too draconian.
+- ~~The way the current tests must work is using `inputVersion   :: InputMigration -> Version` and `list` to verify versions are added currently but nothing else.~~ No `list` and `apply` both return `OutputGroup`s
+
+- I think the properties for just apply are:
+  - Empty migrations give Nothing
+
 - Removing some notes from `InterfaceSpec.hs` to here for prosperity.
 
       the migrate filePath -> dispatches based type of file

@@ -9,12 +9,10 @@ instance Eq WorldState
 instance Show WorldState
 
 -- InputMigration accessors
-inputVersion   :: InputMigration -> Version
--- inputAction    :: InputMigration -> IO (DB ())
--- or we come up with idepotemt withFile MonadMask
-inputAction    :: InputMigration -> DB ()
-
 data InputMigration
+
+inputVersion   :: InputMigration -> Version
+inputAction    :: InputMigration -> DB ()
 
 inputGroup :: NonEmpty InputMigration -> DB InputGroup
 
