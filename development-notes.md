@@ -1,4 +1,16 @@
+#1/6/2020
+- I am not sure if `inputGroup` will work for cmd line interface.
+- The `InputMigration` is probably a query string and some meta info. However the `InputGroup` is a directory path. Creating an `InputGroup` from a `InputMigration`s is an IO operation so I need the signature to be `inputGroup :: NonEmpty InputMigration -> DB InputGroup`
+- I don't see where `inputGroup` is used outside of the tests so it should probably be moved out of the interface as well.
+- I can remove the `Version` from the interface.
+- I am not a fan of the `inputAction`. I'm not a fan of having a separate interface so I can test things.
+- I am surprised I can't make a single interface that can be used for building the libraries and the tests.
+- I'm not sure testing an extended interface means you have tested the interface.
 
+- I am starting to think I need to modify the TestInterface.hsig.
+  - `clear` seems unnecessary. `rollback` should be enough.
+
+- I think I am going to simplify the interface and then see if I can rewrite the tests without the test interface.
 
 # 1/5/2020
 - I've decided that the extra work of writing adapters to maintain the more complex db core is not the fastest path. I should remove the functionality and only maintain a db core that has the interface the cmd line interface supports.
