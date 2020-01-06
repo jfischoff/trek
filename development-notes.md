@@ -1,3 +1,5 @@
+
+
 # 1/5/2020
 - I've decided that the extra work of writing adapters to maintain the more complex db core is not the fastest path. I should remove the functionality and only maintain a db core that has the interface the cmd line interface supports.
 - However before I start the process of removing the features, I should get what I currently have to compile in some sense.

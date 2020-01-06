@@ -1,5 +1,5 @@
-- Finish CmdLineSpec.hs #9
 - Remove setup apply #13
+- Finish CmdLineSpec.hs #9
 - Add a `fromFilePath :: FilePath -> DB ()` to Database.Trek.Db.Interface.hsig #12
 - The hash should be the primary key of the migration #7
 - Pass in created_at instead of generating in the db. #4
