@@ -3,27 +3,13 @@ import Data.List.NonEmpty (NonEmpty)
 import Database.Trek.Db.TestInterface.Types
 import Database.Trek.Db.Interface
 
-data WorldState
-
-instance Eq WorldState
-instance Show WorldState
-
--- InputMigration accessors
 data InputMigration
 
-inputVersion   :: InputMigration -> Version
-inputAction    :: InputMigration -> DB ()
+foo :: InputMigration
+bar :: InputMigration
 
-inputGroup :: NonEmpty InputMigration -> DB InputGroup
+toOutput :: InputGroup -> DB OutputGroup
 
-extraMigrations :: NonEmpty InputMigration
-migrations :: NonEmpty InputMigration
-conflictingMigrations :: NonEmpty InputMigration
-
-worldState :: DB WorldState
-
-clear :: DB ()
-
-rollback :: DB a -> DB a
+inputGroup :: NonEmpty InputMigration  -> DB InputGroup
 
 dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
