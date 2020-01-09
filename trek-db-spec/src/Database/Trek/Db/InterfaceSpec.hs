@@ -1,14 +1,14 @@
 module Database.Trek.Db.InterfaceSpec where
 import Test.Hspec.Expectations.Lifted (shouldReturn)
 import Test.Hspec hiding (shouldReturn)
-import Control.Monad (void)
+-- import Control.Monad (void)
 import Data.List.NonEmpty (NonEmpty(..), fromList, cons)
 import Data.Foldable
 import Database.Trek.Db.Interface
 import Database.Trek.Db.TestInterface
 import Database.Trek.Db.TestInterface.Types
-import Data.Maybe
-import Control.Monad (join)
+-- import Data.Maybe
+-- import Control.Monad (join)
 import Control.Concurrent
 import Control.Concurrent.Async
 import Data.IORef
@@ -62,36 +62,26 @@ aroundAll withFunc specWith = do
 
 withTestDB :: SpecWith SpecState -> Spec
 withTestDB = aroundAll dbRunner
--------------------------------------------------------------------------------
--- Schema clearing
--------------------------------------------------------------------------------
-withClear :: DB a -> SpecState -> IO a
-withClear action SpecState { ssRunner } = ssRunner (clear >> action)
 
--- A replacement for 'it' that also clears
-clearIt
-  :: Example (SpecState -> IO a)
-  => String
-  -> DB a
-  -> SpecWith
-     (Arg (SpecState -> IO a))
-clearIt msg = it msg . withClear
--------------------------------------------------------------------------------
--- Pre-call setup on the db
--------------------------------------------------------------------------------
-withSetup :: DB a -> SpecState -> IO a
-withSetup action = withClear (setup >> action)
+withRunner :: DB a -> SpecState -> IO a
+withRunner action SpecState { ssRunner } = ssRunner action
 
--- A replacement for 'it' that also clears and calls setup
-setupIt
+runIt :: Example (SpecState -> IO a)
+      => String
+      -> DB a
+      -> SpecWith (Arg (SpecState -> IO a))
+runIt msg = it msg . withRunner
+
+rollbackIt
   :: Example (SpecState -> IO a)
   => String
   -> DB a
   -> SpecWith (Arg (SpecState -> IO a))
-setupIt msg = it msg . withSetup
+rollbackIt msg = it msg . withRunner . rollback
 -------------------------------------------------------------------------------
 -- Setup the migrations
 -------------------------------------------------------------------------------
+{-
 applyAllMigrations :: DB OutputGroup
 applyAllMigrations = fmap (fromMaybe (error "migrations could not be applied") . join) $
   apply $ inputGroup migrations
@@ -102,8 +92,8 @@ applyIt
   => String
   -> (OutputGroup -> DB a)
   -> SpecWith (Arg (SpecState -> IO a))
-applyIt msg action = setupIt msg $ applyAllMigrations >>= action
-
+applyIt msg action = applyAllMigrations >>= action
+-}
 --
 --                        apply specs
 --
@@ -131,20 +121,22 @@ applyIt msg action = setupIt msg $ applyAllMigrations >>= action
 -- what else?
 -- if apply with a nothing does not modify the world
 -------------------------------------------------------------------------------
-applyListMigrationSpecs :: SpecWith SpecState
-applyListMigrationSpecs = describe "migration and listApplication" $ do
+{-
+applyMigrationSpecs :: SpecWith SpecState
+applyMigrationSpecs = describe "migration and listApplication" $ do
   setupIt "listApplication gives []" $ listApplications `shouldReturn` Just []
 
+
   describe "apply x >>" $ do
-    applyIt "listApplication = [x]" $ \a ->
+    rollbackIt "listApplication = [x]" $ \a ->
       listApplications `shouldReturn` Just [a]
 
-    applyIt "for s ⊆ x. apply s >> listApplication = [x]" $ \a ->
+    rollbackIt "for s ⊆ x. apply s >> listApplication = [x]" $ \a ->
       forM_ (nonEmptySubsetsOf migrations) $ \subset -> do
         apply (inputGroup subset) `shouldReturn` Just Nothing
         listApplications `shouldReturn` Just [a]
 
-    applyIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. apply (s ∪ y)" <>
+    rollbackIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. apply (s ∪ y)" <>
       ">> listApplication = [x, y]") $ \a ->
         forM_ (nonEmptySubsetsOf extraMigrations) $ \subset -> rollback $ do
           output <- fromMaybe (error "migrations could not be applied") . join
@@ -159,7 +151,11 @@ applyListMigrationSpecs = describe "migration and listApplication" $ do
       ssRunner
         (mapM_ (apply . inputGroup) parts >> worldState) `shouldReturn`
           expectedWorldState
+-}
 
 spec :: Spec
 spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $
-  applyListMigrationSpecs
+  rollbackIt "input migration on clean setup give output group" $ do
+    initial <- inputGroup $ pure foo
+    expected <- toOutput initial
+    apply initial `shouldReturn` Just expected

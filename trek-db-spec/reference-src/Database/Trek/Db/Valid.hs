@@ -25,10 +25,13 @@ data InputMigration = InputMigration
 
 type InputGroup = NonEmpty InputMigration
 
-inputGroup :: NonEmpty InputMigration -> InputGroup
-inputGroup = id
+inputGroup :: NonEmpty InputMigration -> DB InputGroup
+inputGroup = pure
 
 type OutputGroup = NonEmpty Version
+
+toOutput :: InputGroup -> DB OutputGroup
+toOutput = pure . fmap inputVersion
 
 setup :: DB (Maybe ())
 setup = gets isSetup >>= \case
@@ -42,23 +45,22 @@ teardown = gets isSetup >>= \case
 
 flattenVersions =  concat . fmap toList
 
-apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
+apply :: InputGroup -> DB (Maybe OutputGroup)
 apply xs = do
+  setup
   WorldState {isVersions, isSetup} <- get
-  if not isSetup
-    then pure Nothing
-    else Just <$> do
-      let allVersions = map fst $ flattenVersions isVersions
-          migrationsToApply = filter (not . flip elem allVersions . inputVersion) $ toList xs
-      sequence_ $ map inputAction migrationsToApply
 
-      (newVersions, res) <- case nonEmpty migrationsToApply of
-        Nothing -> pure (isVersions, Nothing)
-        Just ys -> pure (isVersions <> [fmap (\x -> (inputVersion x, inputHash x)) ys], Just $ fmap inputVersion ys)
+  let allVersions = map fst $ flattenVersions isVersions
+      migrationsToApply = filter (not . flip elem allVersions . inputVersion) $ toList xs
+  sequence_ $ map inputAction migrationsToApply
 
-      put . WorldState newVersions isSetup =<< gets isCounter
+  (newVersions, res) <- case nonEmpty migrationsToApply of
+    Nothing -> pure (isVersions, Nothing)
+    Just ys -> pure (isVersions <> [fmap (\x -> (inputVersion x, inputHash x)) ys], Just $ fmap inputVersion ys)
 
-      pure res
+  put . WorldState newVersions isSetup =<< gets isCounter
+
+  pure res
 
 listApplications :: DB (Maybe [OutputGroup])
 listApplications = do

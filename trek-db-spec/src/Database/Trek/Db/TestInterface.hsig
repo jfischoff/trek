@@ -12,4 +12,6 @@ toOutput :: InputGroup -> DB OutputGroup
 
 inputGroup :: NonEmpty InputMigration  -> DB InputGroup
 
+rollback :: DB a -> DB a
+
 dbRunner :: (SpecStateM DB -> IO ()) -> IO ()

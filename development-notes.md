@@ -1,3 +1,10 @@
+#1/9/2020
+- Modifying the InterfaceSpec.hs to not use setup and clear.
+- I understand why I have clear and rollback. I need clear if the DB monad
+  is not a transaction. This is to support enum alters for < 12 versions of postgres. I am fine with only supporting 12 to start out with if it makes things easier.
+- I don't think Show and Eq necessarily need to be part of the Interface.hsig
+- I'm not exactly sure how to modify the tests
+
 #1/6/2020
 - I am not sure if `inputGroup` will work for cmd line interface.
 - The `InputMigration` is probably a query string and some meta info. However the `InputGroup` is a directory path. Creating an `InputGroup` from a `InputMigration`s is an IO operation so I need the signature to be `inputGroup :: NonEmpty InputMigration -> DB InputGroup`
@@ -80,6 +87,7 @@
       In this way the migrator can orchanstrate the steps to a zero down time
       deployment.
 
+- One of the things I am noticing. The value of the current `list/apply` tests is I did not need to know how to convert an inputgroup to an outputgroup.
 
 # 1/5/2020
 - I've decided that the extra work of writing adapters to maintain the more complex db core is not the fastest path. I should remove the functionality and only maintain a db core that has the interface the cmd line interface supports.

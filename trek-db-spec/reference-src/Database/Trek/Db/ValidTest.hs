@@ -1,6 +1,5 @@
 module Database.Trek.Db.ValidTest
-  (extraMigrations, migrations, conflictingMigrations, worldState, WorldState(..), clear, rollback, dbRunner
-  , inputVersion, inputAction) where
+  (foo, bar, rollback, inputGroup, toOutput, dbRunner) where
 import Database.Trek.Db.Valid
 import Database.Trek.Db.TestInterface.Types
 import Control.Monad.State
@@ -10,20 +9,11 @@ import Data.Foldable
 add :: Int -> DB ()
 add i = modify (\x -> x { isCounter = isCounter x + i })
 
-extraMigrations :: NonEmpty InputMigration
-extraMigrations = pure $ InputMigration (add 6) 6 6
+foo :: InputMigration
+foo = InputMigration (add 6) 6 6
 
-migrations :: NonEmpty InputMigration
-migrations = fromList $ map (\x -> InputMigration (add x) x x) $ [1 .. 5]
-
-conflictingMigrations :: NonEmpty InputMigration
-conflictingMigrations = fromList $ map (\x -> InputMigration (add x) x $ x + 1) $ [1 .. 5]
-
-worldState :: DB WorldState
-worldState = get
-
-clear :: DB ()
-clear = put initialWorldState
+bar :: InputMigration
+bar = InputMigration (add 5) 5 5
 
 rollback :: DB a -> DB a
 rollback action = do
