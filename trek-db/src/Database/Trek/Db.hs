@@ -77,8 +77,8 @@ inputMigration :: DB () -> Version -> Hash -> InputMigration
 inputMigration = InputMigration
 
 -- InputGroup constructor
-inputGroup :: NonEmpty InputMigration -> InputGroup
-inputGroup = InputGroup
+inputGroup :: NonEmpty InputMigration -> DB InputGroup
+inputGroup = pure . InputGroup
 
 -------------------------------------------------------------------------------
 -- Helpers
@@ -158,8 +158,8 @@ outputGroupsToVersions = concatMap (toList . outputGroupToVersions)
 flattenOutputGroups :: [OutputGroup] -> [OutputMigration]
 flattenOutputGroups = concatMap (NonEmpty.toList . ogMigrations)
 
-hashConflicts :: [InputMigration] -> DB (Maybe [Version])
-hashConflicts migrations = fmap (hashConflictsInternal migrations . flattenOutputGroups) <$> listApplications
+hashConflicts :: [InputMigration] -> DB [Version]
+hashConflicts migrations = hashConflictsInternal migrations . flattenOutputGroups <$> listApplications
 
 hashConflictsInternal :: [InputMigration] -> [OutputMigration] -> [Version]
 hashConflictsInternal newVersions oldVersions =
@@ -183,16 +183,17 @@ getOutputGroup GroupRow {..} = do
   pure $ OutputGroup arId outputMigrations arCreatedAt
 -- | The migration function. Returns the migration group application row if
 -- any new migrations were applied.
-apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
+apply :: InputGroup -> DB (Maybe OutputGroup)
 apply migrations = do
-  mAppliedMigration <- listApplications
-  forM mAppliedMigration $ \appliedMigrations -> do
-    let unappliedMigrations = differenceMigrationsByVersion
-          (toList $ inputGroupMigrations migrations) $ map fst $
-            outputGroupsToVersions  appliedMigrations
+  _ <- setup
+  appliedMigrations <- listApplications
 
-    forM (nonEmpty unappliedMigrations) $ \ms ->
-      getOutputGroup =<< applyMigrations ms
+  let unappliedMigrations = differenceMigrationsByVersion
+        (toList $ inputGroupMigrations migrations) $ map fst $
+          outputGroupsToVersions  appliedMigrations
+
+  forM (nonEmpty unappliedMigrations) $ \ms ->
+    getOutputGroup =<< applyMigrations ms
 
 -------------------------------------------------------------------------------
 -- Helpers for 'migrate'
@@ -234,8 +235,9 @@ insertMigration groupId migration = void $ execute
     (?, ?, ?)
   |] (migration Psql.:. groupId)
 
-listApplications :: DB (Maybe [OutputGroup])
-listApplications = withSetup $
+listApplications :: DB [OutputGroup]
+listApplications = do
+  _ <- setup
   mapM getOutputGroup =<<
     query_ [sql|
       SELECT id, created_at

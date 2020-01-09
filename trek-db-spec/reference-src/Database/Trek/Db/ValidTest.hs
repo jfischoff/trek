@@ -1,5 +1,5 @@
 module Database.Trek.Db.ValidTest
-  (foo, bar, rollback, inputGroup, toOutput, dbRunner) where
+  (foo, bar, rollback, inputGroup, toOutput, dbRunner, InputMigration) where
 import Database.Trek.Db.Valid
 import Database.Trek.Db.TestInterface.Types
 import Control.Monad.State
