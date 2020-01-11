@@ -1,9 +1,35 @@
+#1/10/2020
+- I need to pass the input groups created_at in.
+- Some thoughts on the created_at being client side. I get that it makes testing easier but
+  it breaks the value of having a created_at column, record the order of the migrations were applied.
+- I wonder if it faster to use the transaction id then timestampz.
+- Either way I want to get rid of that restriction
+- So this changes the tests. Instead of providing a way to make them equal, I'll provide my own equivalence function to compare them.
+- Or I have to use libfaketime.
+- Hmm ... on further thought I do like the client side created_at but I think there should also be an auto incremented sequence to order the migrations. The created_at is not to make an order but to give a rough sense of when it was created.
+- I would like to rewrite this entirely in sql
+- This becomes easier to test if the migrator is single threaded. Which it is at first but I am not sure if I should rely on it.
+- No I don't think I should because that would make adding multithreaded behavior harder. Yes I should pass in a equivalence function. I can test that order is preserved on sequencial calls but not their exact numbers. So the order of the migrations hashes going in order of the hashes going out.
+- So the order field doesn't show up.
+- then I can use equals
+- I'm debatting writing the insert as a single statement.
+- It just makes a query that needs a lot of inputs. It increases the chance for a row tranposition error.
+- Starting to wonder if I should use something other than postgresql simple. I'll stick with it for now.
+- So should I make the big query? Yeah.
+- It will probably let me remove some code.
+- I'm starting to feel like I should just make the postgresql function interface first.
+- I'll just write the tests with Haskell.
+- This will also change the interface to take a `String` instead of a `DB ()`
+- Which makes more sense and is simpler then adding a `fromString :: String -> DB ()`
+
+
 #1/9/2020
 - Modifying the InterfaceSpec.hs to not use setup and clear.
 - I understand why I have clear and rollback. I need clear if the DB monad
   is not a transaction. This is to support enum alters for < 12 versions of postgres. I am fine with only supporting 12 to start out with if it makes things easier.
 - I don't think Show and Eq necessarily need to be part of the Interface.hsig
 - I'm not exactly sure how to modify the tests
+- To write `toOutput` for the `DbTest.hs` I need to switch to using content addressable keys.
 
 #1/6/2020
 - I am not sure if `inputGroup` will work for cmd line interface.

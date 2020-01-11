@@ -28,10 +28,10 @@ createBar :: DB ()
 createBar = void $ T.execute_ [sql| CREATE TABLE test.bar ()|]
 
 foo :: InputMigration
-foo = InputMigration createFoo [utcIso8601| 2048-12-01 |] "extra"
+foo = InputMigration createFoo [utcIso8601| 2048-12-01 |] "extra" [utcIso8601| 2026-12-01 |]
 
 bar :: InputMigration
-bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] "migration-2025-12-01"
+bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] "migration-2025-12-01" [utcIso8601| 2026-12-02 |]
 
 toOutput :: InputGroup -> DB OutputGroup
 toOutput = error "toOutput not implemented"
