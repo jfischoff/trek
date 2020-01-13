@@ -198,7 +198,7 @@ listApplications = do
   _ <- setup
   mapM getOutputGroup =<<
     query_ [sql|
-      SELECT id, created_at
+      SELECT id
       FROM meta.applications
       ORDER BY rowOrder ASC |]
 

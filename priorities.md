@@ -1,4 +1,6 @@
 - Remove setup apply #13
+  - Add back apply tests
+  - Finish cmd line apply
 - Finish CmdLineSpec.hs #9
 - Add a `fromFilePath :: FilePath -> DB ()` to Database.Trek.Db.Interface.hsig #12
 - The hash should be the primary key of the migration #7

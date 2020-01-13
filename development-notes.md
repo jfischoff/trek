@@ -1,3 +1,12 @@
+#1/12/2020
+- I think I am confusing myself. There is another interface lurking in the design but it is not necessary that I reify it
+  with an actual interface file. Maybe I will one day but I don't need to now.
+
+  The value of the current interfaces is they allow me to reuse tests at a low and high level. The interface I am thinking about that includes the `makeMigration :: Version -> String -> InputMigration` is nice because I replace the implementation
+  but it is not about I think ... huh this interface will probably help me test too ... idk ... I don't feel like it doing it now.
+
+- For now I need to finish the tests. I'm still unsure if I can easily add back the tests I had before.
+
 #1/11/2020
 - If I change the interface of the "core" library to based on a String query I can't reuse it for some of the
   of the other ideas I have (jobs, etc)

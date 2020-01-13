@@ -12,6 +12,7 @@ import Database.Trek.Db.TestInterface.Types
 import Control.Concurrent
 import Control.Concurrent.Async
 import Data.IORef
+import qualified Data.List.NonEmpty as NonEmpty
 
 type SpecState = SpecStateM DB
 
@@ -154,8 +155,16 @@ applyMigrationSpecs = describe "migration and listApplication" $ do
 -}
 
 spec :: Spec
-spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $
+spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
   rollbackIt "input migration on clean setup give output group" $ do
     initial <- inputGroup $ pure foo
     expected <- toOutput initial
     apply initial `shouldReturn` Just expected
+
+  rollbackIt "for s ⊆ x. apply x >> apply s = Nothing" $ do
+    twoMigrations <- inputGroup (foo NonEmpty.:| [bar])
+    expectedTwoOutput <- toOutput twoMigrations
+    apply twoMigrations `shouldReturn` Just expectedTwoOutput
+
+    rollback $ (apply =<< inputGroup (pure foo)) `shouldReturn` Nothing
+    rollback $ (apply =<< inputGroup (pure bar)) `shouldReturn` Nothing
