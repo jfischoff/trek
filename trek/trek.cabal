@@ -28,8 +28,6 @@ source-repository head
 
 library
   exposed-modules:
-      Database.Trek.TestImpl
-    , Database.Trek.ToInterfaceImpl
   hs-source-dirs:
       src
   default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
