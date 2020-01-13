@@ -34,6 +34,7 @@ import Control.Monad.IO.Class
 import Data.Time
 import Crypto.Hash.SHA1
 import Database.PostgreSQL.Simple.Types
+import Data.Time.Clock.POSIX
 
 type Version = UTCTime
 
@@ -86,7 +87,13 @@ data GroupRow = GroupRow
 -- InputGroup constructor
 inputGroup :: NonEmpty InputMigration -> DB InputGroup
 inputGroup inputGroupMigrations = do
-  inputGroupCreateAd <- liftIO getCurrentTime
+  inputGroupCreateAd <- liftIO $
+    fmap ( posixSecondsToUTCTime
+         . (1e-6 *)
+         . (fromIntegral :: Integer -> NominalDiffTime)
+         . floor
+         . (1e6 *)
+         ) $ getPOSIXTime
   pure InputGroup {..}
 
 -------------------------------------------------------------------------------
