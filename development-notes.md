@@ -6,6 +6,11 @@
   but it is not about I think ... huh this interface will probably help me test too ... idk ... I don't feel like it doing it now.
 
 - For now I need to finish the tests. I'm still unsure if I can easily add back the tests I had before.
+- The test that the effects of migration succeed is why I used to have `worldState`. I don't think it will work though.
+  If the world state includes sequences the output will be the not be the same if I rollback. I wonder if `clear`ing the
+  schema would work? Probably.
+
+  So what do I do? I could add back in `worldState` and `clear`. I think I should.
 
 #1/11/2020
 - If I change the interface of the "core" library to based on a String query I can't reuse it for some of the

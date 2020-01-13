@@ -160,3 +160,5 @@ spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
     onlyQuux <- toOutput =<< inputGroup (quux NonEmpty.:| [])
 
     apply someAlreadyApplied `shouldReturn` Just onlyQuux
+
+  --rollbackIt "actions are preserved during migration : all partitions apply the same effects" $ do
