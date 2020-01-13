@@ -1,6 +1,7 @@
 module Database.Trek.DbTest
   ( foo
   , bar
+  , quux
   , inputGroup
   , toOutput
   , rollback
@@ -29,11 +30,17 @@ createFoo = void $ T.execute_ [sql| CREATE TABLE foo (id SERIAL PRIMARY KEY)|]
 createBar :: DB ()
 createBar = void $ T.execute_ [sql| CREATE TABLE bar (id SERIAL PRIMARY KEY)|]
 
+createQuux :: DB ()
+createQuux = void $ T.execute_ [sql| CREATE TABLE quux (id SERIAL PRIMARY KEY)|]
+
 foo :: InputMigration
 foo = InputMigration createFoo [utcIso8601| 2048-12-01 |] (Binary "extra")
 
 bar :: InputMigration
 bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] (Binary "migration-2025-12-01")
+
+quux :: InputMigration
+quux = InputMigration createQuux [utcIso8601| 2025-12-02 |] (Binary "migration-2025-01-01")
 
 toOutputMigration :: InputMigration -> OutputMigration
 toOutputMigration InputMigration {..} = OutputMigration

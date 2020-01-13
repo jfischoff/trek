@@ -222,7 +222,8 @@ apply migrations = do
           outputGroupsToVersions  appliedMigrations
 
   forM (nonEmpty unappliedMigrations) $ \ms -> do
-    let groupRow = inputGroupToGroupRow migrations
+    let groupRow = inputGroupToGroupRow $
+          migrations { inputGroupMigrations = ms }
     applyMigrations groupRow ms
 
     getOutputGroup $ arId groupRow

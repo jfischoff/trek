@@ -125,24 +125,6 @@ applyIt msg action = applyAllMigrations >>= action
 {-
 applyMigrationSpecs :: SpecWith SpecState
 applyMigrationSpecs = describe "migration and listApplication" $ do
-  setupIt "listApplication gives []" $ listApplications `shouldReturn` Just []
-
-
-  describe "apply x >>" $ do
-    rollbackIt "listApplication = [x]" $ \a ->
-      listApplications `shouldReturn` Just [a]
-
-    rollbackIt "for s ⊆ x. apply s >> listApplication = [x]" $ \a ->
-      forM_ (nonEmptySubsetsOf migrations) $ \subset -> do
-        apply (inputGroup subset) `shouldReturn` Just Nothing
-        listApplications `shouldReturn` Just [a]
-
-    rollbackIt ("for s ⊆ x and y st. z = y / x and z ≠ ∅. apply (s ∪ y)" <>
-      ">> listApplication = [x, y]") $ \a ->
-        forM_ (nonEmptySubsetsOf extraMigrations) $ \subset -> rollback $ do
-          output <- fromMaybe (error "migrations could not be applied") . join
-            <$> apply (inputGroup subset)
-          listApplications `shouldReturn` Just [a, output]
 
   describe "actions are preserved during migration" $ it "all partitions run the same" $ \SpecState {ssRunner} ->
     forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
@@ -168,3 +150,13 @@ spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
 
     rollback $ (apply =<< inputGroup (pure foo)) `shouldReturn` Nothing
     rollback $ (apply =<< inputGroup (pure bar)) `shouldReturn` Nothing
+
+  rollbackIt "for s ⊆ x and y st. z = y / x and z ≠ ∅. apply s >> apply y = Just z" $ do
+    twoMigrations <- inputGroup (foo NonEmpty.:| [bar])
+    expectedTwoOutput <- toOutput twoMigrations
+    apply twoMigrations `shouldReturn` Just expectedTwoOutput
+
+    someAlreadyApplied <- inputGroup (foo NonEmpty.:| [quux])
+    onlyQuux <- toOutput =<< inputGroup (quux NonEmpty.:| [])
+
+    apply someAlreadyApplied `shouldReturn` Just onlyQuux
