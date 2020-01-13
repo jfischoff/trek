@@ -1,12 +1,6 @@
 module Database.Trek.Db
   ( -- * Life cycle management
-    setup
-  , teardown
-    -- * Migration
-  , hashConflicts
-  , apply
-  -- * Queriesi
-  , listApplications
+    apply
   -- * Types
   , InputMigration (..)
   , Version
@@ -21,7 +15,6 @@ module Database.Trek.Db
 import Database.PostgreSQL.Transact
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Time (UTCTime)
 import Data.ByteString (ByteString)
 import qualified Database.PostgreSQL.Simple as Psql
 import qualified Database.PostgreSQL.Simple.FromField as Psql
@@ -31,11 +24,11 @@ import qualified Database.PostgreSQL.Simple.FromRow as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import Control.Monad (void)
 import GHC.Generics
-import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Maybe
 import Data.Traversable
 import Data.Foldable
+import Control.Monad.IO.Class
+import Data.Time
 
 type Version = UTCTime
 
@@ -44,7 +37,7 @@ type Hash = ByteString
 type Time = UTCTime
 
 data InputMigration = InputMigration
-  { inputAction  :: String
+  { inputAction  :: DB ()
   , inputVersion :: Version
   , inputHash    :: Hash
   }
@@ -89,7 +82,7 @@ data GroupRow = GroupRow
 inputGroup :: NonEmpty InputMigration -> DB InputGroup
 inputGroup inputGroupMigrations = do
   inputGroupCreateAd <- liftIO getCurrentTime
-  InputGroup {..}
+  pure InputGroup {..}
 
 -------------------------------------------------------------------------------
 -- Helpers
@@ -108,9 +101,6 @@ onSetup onF action = do
     then Just <$> action
     else pure Nothing
 
-withSetup :: DB a -> DB (Maybe a)
-withSetup = onSetup id
-
 withoutSetup :: DB a -> DB (Maybe a)
 withoutSetup = onSetup not
 
@@ -122,9 +112,11 @@ setup :: DB (Maybe ())
 setup = withoutSetup $ void $ execute_ [sql|
   CREATE TABLE meta.applications
   ( id bytea PRIMARY KEY
+  , order SERIAL;
   , created_at TIMESTAMP WITH TIME ZONE NOT NULL
   );
 
+  CREATE INDEX ON meta.applications (order);
   CREATE INDEX ON meta.applications (created_at);
 
   CREATE TABLE meta.actions
@@ -142,101 +134,26 @@ setup = withoutSetup $ void $ execute_ [sql|
 
   |]
 
-teardown :: DB (Maybe ())
-teardown = withSetup $ void $ execute_ [sql|
-    DROP TABLE meta.actions;
-    DROP TABLE meta.applications;
-  |]
-
 --------------------------
 -- apply
 -------------------------
-listApplications :: DB [OutputGroup]
-listApplications = do
-  _ <- setup
-  mapM getOutputGroup =<<
-    query_ [sql|
-      SELECT id, created_at
-      FROM meta.applications
-      ORDER BY order ASC |]
+createApplication :: GroupRow -> DB ()
+createApplication groupRow = void $ execute [sql|
+  INSERT INTO meta.applications
+  (id, created_at)
+  VALUES
+  (?, ?)
+  |] groupRow
 
-apply :: InputGroup -> DB (Maybe OutputGroup)
-apply migrations = do
-  _ <- setup
-  appliedMigrations <- listApplications
-
-  let unappliedMigrations = differenceMigrationsByVersion
-        (toList $ inputGroupMigrations migrations) $ map fst $
-          outputGroupsToVersions  appliedMigrations
-
-  forM (nonEmpty unappliedMigrations) $ \ms ->
-    applyMigrations ms
-
-applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB GroupRow
-applyMigrations groupRow migrations = do
-  createApplication groupRow
-  forM_ migrations $ \migration -> do
-    inputAction migration
-    insertMigration (applicationId groupRow) migration
-  pure application
-
-applyMigration :: Hash -> InputMigration -> DB ()
-applyMigration applicationId migration = do
-
-
-insertMigration :: GroupId -> InputMigration -> DB ()
-insertMigration groupId migration = void $ execute
-  [sql|
-    INSERT INTO meta.actions
-    (version, hash, application_id)
-    VALUES
-    (?, ?, ?)
-  |] (migration Psql.:. groupId)
-
-{-
 dup :: (t -> a) -> (t -> b) -> t -> (a, b)
 dup f g x = (f x, g x) -- ((,) <$> f <*> g)
-
-outputGroupToVersions :: OutputGroup -> NonEmpty (Version, Hash)
-outputGroupToVersions = fmap (dup omVersion omHash) . ogMigrations
 
 outputGroupsToVersions :: [OutputGroup] -> [(Version, Hash)]
 outputGroupsToVersions = concatMap (toList . outputGroupToVersions)
 
-flattenOutputGroups :: [OutputGroup] -> [OutputMigration]
-flattenOutputGroups = concatMap (NonEmpty.toList . ogMigrations)
+outputGroupToVersions :: OutputGroup -> NonEmpty (Version, Hash)
+outputGroupToVersions = fmap (dup omVersion omHash) . ogMigrations
 
-hashConflicts :: [InputMigration] -> DB [Version]
-hashConflicts migrations = hashConflictsInternal migrations . flattenOutputGroups <$> listApplications
-
-hashConflictsInternal :: [InputMigration] -> [OutputMigration] -> [Version]
-hashConflictsInternal newVersions oldVersions =
-  let hashableMap = Map.fromList $ map (dup omVersion omHash) $ oldVersions
-      lookupDifferentHash theMap (key, newHash) =
-        case Map.lookup key theMap of
-          Just existingHash
-              | existingHash /= newHash -> Just key
-          _ -> Nothing
-
-  in mapMaybe (lookupDifferentHash hashableMap . dup inputVersion inputHash) newVersions
-
-getOutputGroup :: GroupRow -> DB OutputGroup
-getOutputGroup GroupRow {..} = do
-  outputMigrations <- NonEmpty.fromList <$> query [sql|
-    SELECT version, hash, application_id, created_at
-    FROM meta.actions
-    WHERE application_id = ?
-    ORDER BY created_at ASC
-  |] arId
-  pure $ OutputGroup arId outputMigrations arCreatedAt
--- | The migration function. Returns the migration group application row if
--- any new migrations were applied.
-
-
-
--------------------------------------------------------------------------------
--- Helpers for 'migrate'
--------------------------------------------------------------------------------
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
   = Set.toList
@@ -247,17 +164,69 @@ differenceMigrationsByVersion migrations appliedVersions =
   let versionsToApply = diffToUnappliedMigrations (map inputVersion migrations) appliedVersions
   in filter (\m -> inputVersion m `elem` versionsToApply) migrations
 
+getOutputGroup :: GroupId -> DB OutputGroup
+getOutputGroup groupId = do
+  outputMigrations <- NonEmpty.fromList <$> query [sql|
+    SELECT version, hash, application_id, created_at
+    FROM meta.actions
+    WHERE application_id = ?
+    ORDER BY created_at ASC
+  |] groupId
 
+  arCreatedAt <- fmap (Psql.fromOnly . head) $ query [sql|
+    SELECT created_at
+    FROM meta.applications
+    WHERE id = ?
+  |] groupId
 
+  pure $ OutputGroup groupId arCreatedAt outputMigrations
 
+listApplications :: DB [OutputGroup]
+listApplications = do
+  _ <- setup
+  mapM getOutputGroup =<<
+    query_ [sql|
+      SELECT id, created_at
+      FROM meta.applications
+      ORDER BY order ASC |]
 
-createApplication :: GroupRow -> DB GroupRow
-createApplication theHash = fmap head $ query [sql|
-  INSERT INTO meta.applications
-  DEFAULT VALUES
-  RETURNING id, created_at
-  |] $ Only theHash
+makeGroupHash :: NonEmpty InputMigration -> Hash
+makeGroupHash = error "makeGroupHash"
 
+inputGroupToGroupRow :: InputGroup -> GroupRow
+inputGroupToGroupRow InputGroup {..} =
+  let arId         = GroupId $ makeGroupHash inputGroupMigrations
+      arCreatedAt  = inputGroupCreateAd
 
+  in GroupRow {..}
 
--}
+apply :: InputGroup -> DB (Maybe OutputGroup)
+apply migrations = do
+  _ <- setup
+  appliedMigrations <- listApplications
+
+  let unappliedMigrations = differenceMigrationsByVersion
+        (toList $ inputGroupMigrations migrations) $ map fst $
+          outputGroupsToVersions  appliedMigrations
+
+  forM (nonEmpty unappliedMigrations) $ \ms -> do
+    let groupRow = inputGroupToGroupRow migrations
+    applyMigrations groupRow ms
+
+    getOutputGroup $ arId groupRow
+
+applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB ()
+applyMigrations groupRow migrations = do
+  createApplication groupRow
+  forM_ migrations $ \migration -> do
+    inputAction migration
+    insertMigration (arId groupRow) migration
+
+insertMigration :: GroupId -> InputMigration -> DB ()
+insertMigration groupId migration = void $ execute
+  [sql|
+    INSERT INTO meta.actions
+    (version, hash, application_id)
+    VALUES
+    (?, ?, ?)
+  |] (migration Psql.:. groupId)
