@@ -39,7 +39,7 @@ clear = void $ T.execute_ [sql|
 worldState :: DB WorldState
 worldState = do
   xs :: [String] <- fmap Psql.fromOnly <$> T.query_
-    "SELECT CAST(table_name AS varchar) FROM information_schema.tables where table_schema = 'test'"
+    "SELECT CAST(table_name AS varchar) FROM information_schema.tables where table_schema = 'test' ORDER BY table_name"
   pure $ concat xs
 
 createFoo :: DB ()
