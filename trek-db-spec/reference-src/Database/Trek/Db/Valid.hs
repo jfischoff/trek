@@ -23,6 +23,12 @@ data InputMigration = InputMigration
   , inputHash :: Int
   }
 
+clear :: DB ()
+clear = put initialWorldState
+
+worldState :: DB WorldState
+worldState = get
+
 type InputGroup = NonEmpty InputMigration
 
 inputGroup :: NonEmpty InputMigration -> DB InputGroup

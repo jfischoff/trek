@@ -1,3 +1,7 @@
+#1/20/2020
+
+- Adding back `worldState` and `clear`
+
 #1/12/2020
 - I think I am confusing myself. There is another interface lurking in the design but it is not necessary that I reify it
   with an actual interface file. Maybe I will one day but I don't need to now.
