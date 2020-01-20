@@ -1,6 +1,4 @@
 - Remove setup apply #13
-  - Remove the reference implementation
-  - Add back apply tests
   - Finish cmd line apply
 - Finish CmdLineSpec.hs #9
 - Add a `fromFilePath :: FilePath -> DB ()` to Database.Trek.Db.Interface.hsig #12
