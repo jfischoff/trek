@@ -1,28 +1,23 @@
 module Database.Trek.Db
   ( -- * Life cycle management
-    setup
-  , teardown
-    -- * Migration
-  , hashConflicts
-  , apply
-  -- * Queriesi
-  , listApplications
+    apply
   -- * Types
   , InputMigration (..)
+  , OutputMigration (..)
+  , GroupId (..)
   , Version
   , Hash
   , DB
   , OutputGroup (..)
   , InputGroup (..)
-  , inputMigration
   , inputGroup
   , Time
+  , makeGroupHash
   )
   where
 import Database.PostgreSQL.Transact
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
-import Data.Time (UTCTime)
 import Data.ByteString (ByteString)
 import qualified Database.PostgreSQL.Simple as Psql
 import qualified Database.PostgreSQL.Simple.FromField as Psql
@@ -32,11 +27,14 @@ import qualified Database.PostgreSQL.Simple.FromRow as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import Control.Monad (void)
 import GHC.Generics
-import qualified Data.Map as Map
 import qualified Data.Set as Set
-import Data.Maybe
 import Data.Traversable
 import Data.Foldable
+import Control.Monad.IO.Class
+import Data.Time
+import Crypto.Hash.SHA1
+import Database.PostgreSQL.Simple.Types
+import Data.Time.Clock.POSIX
 
 type Version = UTCTime
 
@@ -45,15 +43,15 @@ type Hash = ByteString
 type Time = UTCTime
 
 data InputMigration = InputMigration
-  { inputAction :: DB ()
+  { inputAction  :: DB ()
   , inputVersion :: Version
-  , inputHash :: Hash
+  , inputHash    :: (Binary Hash)
   }
 
 instance Psql.ToRow InputMigration where
   toRow InputMigration {..} = [Psql.toField inputVersion, Psql.toField inputHash]
 
-newtype GroupId = GroupId Int
+newtype GroupId = GroupId (Binary ByteString)
     deriving stock (Show, Eq, Ord, Generic)
     deriving newtype (Psql.FromField, Psql.ToField)
     deriving (Psql.ToRow) via (Psql.Only GroupId)
@@ -61,24 +59,42 @@ newtype GroupId = GroupId Int
 instance Psql.FromRow GroupId where
   fromRow = GroupId <$> Psql.field
 
+data OutputMigration = OutputMigration
+  { omVersion :: Version
+  , omHash    :: Binary Hash
+  } deriving stock (Eq, Show, Ord, Generic)
+    deriving anyclass (Psql.FromRow)
+
+
 data OutputGroup = OutputGroup
   { ogId         :: GroupId
-  , ogMigrations :: NonEmpty OutputMigration
   , ogCreatedAt  :: UTCTime
+  , ogMigrations :: NonEmpty OutputMigration
   }
   deriving (Show, Eq)
 
 data InputGroup = InputGroup
   { inputGroupMigrations :: NonEmpty InputMigration
+  , inputGroupCreateAd :: UTCTime
   }
 
--- InputMigration constructor
-inputMigration :: DB () -> Version -> Hash -> InputMigration
-inputMigration = InputMigration
+data GroupRow = GroupRow
+  { arId         :: GroupId
+  , arCreatedAt  :: UTCTime
+  } deriving stock (Show, Eq, Ord, Generic)
+    deriving anyclass (Psql.ToRow, Psql.FromRow)
 
 -- InputGroup constructor
-inputGroup :: NonEmpty InputMigration -> InputGroup
-inputGroup = InputGroup
+inputGroup :: NonEmpty InputMigration -> DB InputGroup
+inputGroup inputGroupMigrations = do
+  inputGroupCreateAd <- liftIO $
+    fmap ( posixSecondsToUTCTime
+         . (1e-4 *)
+         . (fromIntegral :: Integer -> NominalDiffTime)
+         . floor
+         . (1e4 *)
+         ) $ getPOSIXTime
+  pure InputGroup {..}
 
 -------------------------------------------------------------------------------
 -- Helpers
@@ -97,9 +113,6 @@ onSetup onF action = do
     then Just <$> action
     else pure Nothing
 
-withSetup :: DB a -> DB (Maybe a)
-withSetup = onSetup id
-
 withoutSetup :: DB a -> DB (Maybe a)
 withoutSetup = onSetup not
 
@@ -109,94 +122,50 @@ withoutSetup = onSetup not
 
 setup :: DB (Maybe ())
 setup = withoutSetup $ void $ execute_ [sql|
+  CREATE SCHEMA meta;
+
   CREATE TABLE meta.applications
-  ( id SERIAL PRIMARY KEY
-  , created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
+  ( id bytea PRIMARY KEY
+  , rowOrder SERIAL NOT NULL
+  , created_at TIMESTAMP WITH TIME ZONE NOT NULL
   );
+
+  CREATE INDEX ON meta.applications (rowOrder);
+  CREATE INDEX ON meta.applications (created_at);
 
   CREATE TABLE meta.actions
   ( version TIMESTAMP WITH TIME ZONE PRIMARY KEY
   , hash bytea NOT NULL
-  , application_id int NOT NULL REFERENCES meta.applications ON DELETE CASCADE
-  , created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT current_timestamp
+  , application_id bytea NOT NULL REFERENCES meta.applications ON DELETE CASCADE
+  , rowOrder SERIAL NOT NULL
   );
 
-  |]
+  CREATE INDEX ON meta.actions (hash);
+  CREATE INDEX ON meta.actions (application_id);
+  CREATE INDEX ON meta.actions (rowOrder);
 
-teardown :: DB (Maybe ())
-teardown = withSetup $ void $ execute_ [sql|
-    DROP TABLE meta.actions;
-    DROP TABLE meta.applications;
   |]
 
 --------------------------
 -- apply
 -------------------------
-data OutputMigration = OutputMigration
-  { omVersion :: Version
-  , omHash :: Hash
-  , omGroupId :: GroupId
-  , omCreatedAt :: UTCTime
-  } deriving stock (Eq, Show, Ord, Generic)
-    deriving anyclass (Psql.FromRow)
-
-data GroupRow = GroupRow
-  { arId         :: GroupId
-  , arCreatedAt  :: UTCTime
-  } deriving stock (Show, Eq, Ord, Generic)
-    deriving anyclass (Psql.FromRow)
+createApplication :: GroupRow -> DB ()
+createApplication groupRow = void $ execute [sql|
+  INSERT INTO meta.applications
+  (id, created_at)
+  VALUES
+  (?, ?)
+  |] groupRow
 
 dup :: (t -> a) -> (t -> b) -> t -> (a, b)
-dup f g x = (f x, g x) -- ((,) <$> f <*> g)
-
-outputGroupToVersions :: OutputGroup -> NonEmpty (Version, Hash)
-outputGroupToVersions = fmap (dup omVersion omHash) . ogMigrations
+dup f g x = (f x, g x)
 
 outputGroupsToVersions :: [OutputGroup] -> [(Version, Hash)]
 outputGroupsToVersions = concatMap (toList . outputGroupToVersions)
 
-flattenOutputGroups :: [OutputGroup] -> [OutputMigration]
-flattenOutputGroups = concatMap (NonEmpty.toList . ogMigrations)
+outputGroupToVersions :: OutputGroup -> NonEmpty (Version, Hash)
+outputGroupToVersions = fmap (dup omVersion (fromBinary . omHash)) . ogMigrations
 
-hashConflicts :: [InputMigration] -> DB (Maybe [Version])
-hashConflicts migrations = fmap (hashConflictsInternal migrations . flattenOutputGroups) <$> listApplications
-
-hashConflictsInternal :: [InputMigration] -> [OutputMigration] -> [Version]
-hashConflictsInternal newVersions oldVersions =
-  let hashableMap = Map.fromList $ map (dup omVersion omHash) $ oldVersions
-      lookupDifferentHash theMap (key, newHash) =
-        case Map.lookup key theMap of
-          Just existingHash
-              | existingHash /= newHash -> Just key
-          _ -> Nothing
-
-  in mapMaybe (lookupDifferentHash hashableMap . dup inputVersion inputHash) newVersions
-
-getOutputGroup :: GroupRow -> DB OutputGroup
-getOutputGroup GroupRow {..} = do
-  outputMigrations <- NonEmpty.fromList <$> query [sql|
-    SELECT version, hash, application_id, created_at
-    FROM meta.actions
-    WHERE application_id = ?
-    ORDER BY created_at ASC
-  |] arId
-  pure $ OutputGroup arId outputMigrations arCreatedAt
--- | The migration function. Returns the migration group application row if
--- any new migrations were applied.
-apply :: InputGroup -> DB (Maybe (Maybe OutputGroup))
-apply migrations = do
-  mAppliedMigration <- listApplications
-  forM mAppliedMigration $ \appliedMigrations -> do
-    let unappliedMigrations = differenceMigrationsByVersion
-          (toList $ inputGroupMigrations migrations) $ map fst $
-            outputGroupsToVersions  appliedMigrations
-
-    forM (nonEmpty unappliedMigrations) $ \ms ->
-      getOutputGroup =<< applyMigrations ms
-
--------------------------------------------------------------------------------
--- Helpers for 'migrate'
--------------------------------------------------------------------------------
 diffToUnappliedMigrations :: [Version] -> [Version] -> [Version]
 diffToUnappliedMigrations allMigrations appliedMigrations
   = Set.toList
@@ -207,23 +176,64 @@ differenceMigrationsByVersion migrations appliedVersions =
   let versionsToApply = diffToUnappliedMigrations (map inputVersion migrations) appliedVersions
   in filter (\m -> inputVersion m `elem` versionsToApply) migrations
 
-applyMigrations :: NonEmpty (InputMigration) -> DB GroupRow
-applyMigrations migrations = do
-  application@GroupRow {..} <- createApplication
-  mapM_ (applyMigration arId) migrations
-  pure application
+getOutputGroup :: GroupId -> DB OutputGroup
+getOutputGroup groupId = do
+  outputMigrations <- NonEmpty.fromList <$> query [sql|
+    SELECT version, hash
+    FROM meta.actions
+    WHERE application_id = ?
+    ORDER BY rowOrder ASC
+  |] groupId
 
-applyMigration :: GroupId -> InputMigration -> DB ()
-applyMigration applicationId migration = do
-  inputAction migration
-  insertMigration applicationId migration
+  arCreatedAt <- fmap (Psql.fromOnly . head) $ query [sql|
+    SELECT created_at
+    FROM meta.applications
+    WHERE id = ?
+  |] groupId
 
-createApplication :: DB GroupRow
-createApplication = fmap head $ query_ [sql|
-  INSERT INTO meta.applications
-  DEFAULT VALUES
-  RETURNING id, created_at
-  |]
+  pure $ OutputGroup groupId arCreatedAt outputMigrations
+
+listApplications :: DB [OutputGroup]
+listApplications = do
+  _ <- setup
+  mapM getOutputGroup =<<
+    query_ [sql|
+      SELECT id
+      FROM meta.applications
+      ORDER BY rowOrder ASC |]
+
+makeGroupHash :: [InputMigration] -> Hash
+makeGroupHash migrations = hash $ mconcat ("application|" : map (fromBinary . inputHash) migrations)
+
+inputGroupToGroupRow :: InputGroup -> GroupRow
+inputGroupToGroupRow InputGroup {..} =
+  let arId         = GroupId $ Binary $ makeGroupHash $ NonEmpty.toList inputGroupMigrations
+      arCreatedAt  = inputGroupCreateAd
+
+  in GroupRow {..}
+
+apply :: InputGroup -> DB (Maybe OutputGroup)
+apply migrations = do
+  _ <- setup
+  appliedMigrations <- listApplications
+
+  let unappliedMigrations = differenceMigrationsByVersion
+        (toList $ inputGroupMigrations migrations) $ map fst $
+          outputGroupsToVersions  appliedMigrations
+
+  forM (nonEmpty unappliedMigrations) $ \ms -> do
+    let groupRow = inputGroupToGroupRow $
+          migrations { inputGroupMigrations = ms }
+    applyMigrations groupRow ms
+
+    getOutputGroup $ arId groupRow
+
+applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB ()
+applyMigrations groupRow migrations = do
+  createApplication groupRow
+  forM_ migrations $ \migration -> do
+    inputAction migration
+    insertMigration (arId groupRow) migration
 
 insertMigration :: GroupId -> InputMigration -> DB ()
 insertMigration groupId migration = void $ execute
@@ -233,11 +243,3 @@ insertMigration groupId migration = void $ execute
     VALUES
     (?, ?, ?)
   |] (migration Psql.:. groupId)
-
-listApplications :: DB (Maybe [OutputGroup])
-listApplications = withSetup $
-  mapM getOutputGroup =<<
-    query_ [sql|
-      SELECT id, created_at
-      FROM meta.applications
-      ORDER BY created_at ASC |]

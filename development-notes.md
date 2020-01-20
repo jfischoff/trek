@@ -1,3 +1,168 @@
+#1/20/2020
+
+- Adding back `worldState` and `clear`
+- I don't understand how I was ever able to the test the reference implementation. Not sure how much value I get.
+  Going to remove it.
+
+#1/12/2020
+- I think I am confusing myself. There is another interface lurking in the design but it is not necessary that I reify it
+  with an actual interface file. Maybe I will one day but I don't need to now.
+
+  The value of the current interfaces is they allow me to reuse tests at a low and high level. The interface I am thinking about that includes the `makeMigration :: Version -> String -> InputMigration` is nice because I replace the implementation
+  but it is not about I think ... huh this interface will probably help me test too ... idk ... I don't feel like it doing it now.
+
+- For now I need to finish the tests. I'm still unsure if I can easily add back the tests I had before.
+- The test that the effects of migration succeed is why I used to have `worldState`. I don't think it will work though.
+  If the world state includes sequences the output will be the not be the same if I rollback. I wonder if `clear`ing the
+  schema would work? Probably.
+
+  So what do I do? I could add back in `worldState` and `clear`. I think I should.
+
+#1/11/2020
+- If I change the interface of the "core" library to based on a String query I can't reuse it for some of the
+  of the other ideas I have (jobs, etc)
+- However I am not trying to do those other things now, so I am not sure it worth paying a complexity cost.
+- Whether I use `String` in `InputMigration` or not, I need have way to use the interface that in involves a creating a migration from a string.
+- I think there are two different concerns.
+  - I want to be able to write tests for the migration interface that do not have to change if the implementation
+    changes
+  - I want to be able to have a interface for building a migrator that let's the implementation change.
+
+  For testing I care less about the specifics of creation. For instance the implementation might have a name or not
+  but that doesn't change the roundtrip property of the migrations.
+
+  However whether it has a name of not changing what is need for creation so it is an important part of the interface for
+  migrator.
+
+  My current feeling is it is better to have two interfaces that perfectly fit the needs to how they are being used, then one but we'll see.
+
+  I think this puts the question of whether to use a `DB ()` or a `String` in more focus. From the perspective of the `apply`
+  property tests it doesn't matter.
+
+  Choosing one or the another doesn't solve the problem that I would like to have a separate interface for actually making the migrator.
+
+- I think for now there is an interface for building the migrator that requires a String. However I can still implement it with a `DB ()`.
+- I think the question is whether I want to write a postgresql function that is used as the implementation for apply. I do want an adhoc way to add migrations with postgresql functions but the interface is different. It will only take in a single migration and derive the hash and version. I don't need a function for adding an array of migration inputs.
+- So I think on final consideration nothing is gained really by moving to a `String` version.
+- I can make the `applyMigrations` function faster with a `executeMany` but I don't think I should worry about that.
+
+#1/10/2020
+- I need to pass the input groups created_at in.
+- Some thoughts on the created_at being client side. I get that it makes testing easier but
+  it breaks the value of having a created_at column, record the order of the migrations were applied.
+- I wonder if it faster to use the transaction id then timestampz.
+- Either way I want to get rid of that restriction
+- So this changes the tests. Instead of providing a way to make them equal, I'll provide my own equivalence function to compare them.
+- Or I have to use libfaketime.
+- Hmm ... on further thought I do like the client side created_at but I think there should also be an auto incremented sequence to order the migrations. The created_at is not to make an order but to give a rough sense of when it was created.
+- I would like to rewrite this entirely in sql
+- This becomes easier to test if the migrator is single threaded. Which it is at first but I am not sure if I should rely on it.
+- No I don't think I should because that would make adding multithreaded behavior harder. Yes I should pass in a equivalence function. I can test that order is preserved on sequencial calls but not their exact numbers. So the order of the migrations hashes going in order of the hashes going out.
+- So the order field doesn't show up.
+- then I can use equals
+- I'm debatting writing the insert as a single statement.
+- It just makes a query that needs a lot of inputs. It increases the chance for a row tranposition error.
+- Starting to wonder if I should use something other than postgresql simple. I'll stick with it for now.
+- So should I make the big query? Yeah.
+- It will probably let me remove some code.
+- I'm starting to feel like I should just make the postgresql function interface first.
+- I'll just write the tests with Haskell.
+- This will also change the interface to take a `String` instead of a `DB ()`
+- Which makes more sense and is simpler then adding a `fromString :: String -> DB ()`
+
+
+#1/9/2020
+- Modifying the InterfaceSpec.hs to not use setup and clear.
+- I understand why I have clear and rollback. I need clear if the DB monad
+  is not a transaction. This is to support enum alters for < 12 versions of postgres. I am fine with only supporting 12 to start out with if it makes things easier.
+- I don't think Show and Eq necessarily need to be part of the Interface.hsig
+- I'm not exactly sure how to modify the tests
+- To write `toOutput` for the `DbTest.hs` I need to switch to using content addressable keys.
+
+#1/6/2020
+- I am not sure if `inputGroup` will work for cmd line interface.
+- The `InputMigration` is probably a query string and some meta info. However the `InputGroup` is a directory path. Creating an `InputGroup` from a `InputMigration`s is an IO operation so I need the signature to be `inputGroup :: NonEmpty InputMigration -> DB InputGroup`
+- I don't see where `inputGroup` is used outside of the tests so it should probably be moved out of the interface as well.
+- I can remove the `Version` from the interface.
+- I am not a fan of the `inputAction`. I'm not a fan of having a separate interface so I can test things.
+- I am surprised I can't make a single interface that can be used for building the libraries and the tests.
+- I'm not sure testing an extended interface means you have tested the interface.
+
+- I am starting to think I need to modify the TestInterface.hsig.
+  - `clear` seems unnecessary. `rollback` should be enough.
+
+- I think I am going to simplify the interface and then see if I can rewrite the tests without the test interface.
+
+- Including the `inputGroup` in the interface was a way to ensure that `InputGroup` was non-empty ... but it can't do that anyway.
+- There is nothing about the interface that points to it not handling an empty inputgroup. That is not something that core checks.
+- I think what is needed for testing is `toOutput :: InputMigration -> OutputRecord` but I can't in general compute that. For instance if a rollback PiTR label is generated, or if anything is generated in the DB. I think preventing that from happening is too draconian.
+- ~~The way the current tests must work is using `inputVersion   :: InputMigration -> Version` and `list` to verify versions are added currently but nothing else.~~ No `list` and `apply` both return `OutputGroup`s
+
+- I think the properties for just apply are:
+  - Empty migrations give Nothing
+
+- Removing some notes from `InterfaceSpec.hs` to here for prosperity.
+
+      the migrate filePath -> dispatches based type of file
+      if it is a directory it tries to load each file
+      -- it dispatches of the file type
+      if it is a file it loads it as a newline manifest
+      if it is a sql file it runs it and using the name to determine the migration
+      if it is a sh it runs it
+
+      Crazy idea. I can test the migrate filePath implementations with the same test interface
+
+      Crazy idea more the exe can shelf test the extension scripts
+
+      trek add-hashes [VERSION]
+
+      trek remove-hashes [VERSION]
+
+      Some ideas
+
+      need to make the job runner next
+
+      data Job = Job
+        { batch :: LastRow -> DB [Row]
+        , rowKey :: Row -> LastRow
+        , action :: Row -> DB ()
+        }
+
+      And the coordinator that can take a migration and turn it into a sequence of
+      migrations and jobs followed by code deployments.
+
+      These might all be migrators
+
+      The job system is sort of like a migration system that has a status
+      The job system updates the migration until it is finished.
+
+      The code deployment doesn't push something that is already out there
+
+      Every thing is idepotent. It is basically a system for ensure idepotency
+
+      but they are idepotent in different ways.
+      The migration system does something or not.
+      The job is incremental and updates state
+      The code deployment is based on the output hash.
+
+      Not clear how to have a single interface yet ... if at all.
+
+      an interesting question is whether the system can handle concurrency. It should
+      be able to
+
+      A table lock sounds reasonable
+
+      Some thoughts about the bigger picture. This is not just a migrator.
+      It is a way to store actions to help achieve idempotency. The fact
+      that it can do that easily for DB actions is a special case. Because
+      we can lift into the DB (or perhaps it should be abstracted to a different
+      monad) we can embed arbitrary IO.
+
+      In this way the migrator can orchanstrate the steps to a zero down time
+      deployment.
+
+- One of the things I am noticing. The value of the current `list/apply` tests is I did not need to know how to convert an inputgroup to an outputgroup.
+
 # 1/5/2020
 - I've decided that the extra work of writing adapters to maintain the more complex db core is not the fastest path. I should remove the functionality and only maintain a db core that has the interface the cmd line interface supports.
 - However before I start the process of removing the features, I should get what I currently have to compile in some sense.

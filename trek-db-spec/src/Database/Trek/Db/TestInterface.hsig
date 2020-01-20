@@ -3,25 +3,27 @@ import Data.List.NonEmpty (NonEmpty)
 import Database.Trek.Db.TestInterface.Types
 import Database.Trek.Db.Interface
 
+data InputMigration
+
+inputAction :: InputMigration -> DB ()
+
+foo :: InputMigration
+bar :: InputMigration
+quux :: InputMigration
+
+toOutput :: InputGroup -> DB OutputGroup
+
+inputGroup :: NonEmpty InputMigration  -> DB InputGroup
+
+rollback :: DB a -> DB a
+
+dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
+
+clear :: DB ()
+
 data WorldState
 
 instance Eq WorldState
 instance Show WorldState
 
--- InputMigration accessors
-inputVersion   :: InputMigration -> Version
--- inputAction    :: InputMigration -> IO (DB ())
--- or we come up with idepotemt withFile MonadMask
-inputAction    :: InputMigration -> DB ()
-
-extraMigrations :: NonEmpty InputMigration
-migrations :: NonEmpty InputMigration
-conflictingMigrations :: NonEmpty InputMigration
-
 worldState :: DB WorldState
-
-clear :: DB ()
-
-rollback :: DB a -> DB a
-
-dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
