@@ -1,5 +1,5 @@
 - Remove setup apply #13
-  - Add back `worldState` and `clear`.
+  - Remove the reference implementation
   - Add back apply tests
   - Finish cmd line apply
 - Finish CmdLineSpec.hs #9

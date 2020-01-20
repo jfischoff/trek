@@ -1,5 +1,5 @@
 module Database.Trek.Db.ValidTest
-  (foo, bar, quux, rollback, clear, WorldState, worldState, inputGroup, toOutput, dbRunner, InputMigration) where
+  (foo, bar, quux, rollback, clear, WorldState, worldState, inputGroup, inputAction, toOutput, dbRunner, InputMigration) where
 import Database.Trek.Db.Valid
 import Database.Trek.Db.TestInterface.Types
 import Control.Monad.State
@@ -26,4 +26,4 @@ rollback action = do
   pure r
 
 dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
-dbRunner f = f $  SpecState (flip evalStateT initialWorldState)
+dbRunner f = f $  SpecState (flip evalStateT initialInternalState)

@@ -89,10 +89,10 @@ inputGroup :: NonEmpty InputMigration -> DB InputGroup
 inputGroup inputGroupMigrations = do
   inputGroupCreateAd <- liftIO $
     fmap ( posixSecondsToUTCTime
-         . (1e-7 *)
+         . (1e-5 *)
          . (fromIntegral :: Integer -> NominalDiffTime)
          . floor
-         . (1e7 *)
+         . (1e5 *)
          ) $ getPOSIXTime
   pure InputGroup {..}
 

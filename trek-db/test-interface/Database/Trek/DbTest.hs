@@ -3,6 +3,7 @@ module Database.Trek.DbTest
   , bar
   , quux
   , inputGroup
+  , inputAction
   , toOutput
   , rollback
   , dbRunner
@@ -32,26 +33,23 @@ type WorldState = String
 clear :: DB ()
 clear = void $ T.execute_ [sql|
   DROP SCHEMA IF EXISTS meta CASCADE;
-  CREATE SCHEMA meta;
   DROP SCHEMA IF EXISTS test CASCADE;
-  CREATE SCHEMA test; |]
+ |]
 
 worldState :: DB WorldState
 worldState = do
-  xs <- fmap Psql.fromOnly <$> T.query_
-    "SELECT table_name FROM information_schema.tables where table_schema = 'test'"
-  ys <- fmap Psql.fromOnly <$> T.query_
-    "SELECT table_name FROM information_schema.tables where table_schema = 'meta'"
-  pure $ xs ++ ys
+  xs :: [String] <- fmap Psql.fromOnly <$> T.query_
+    "SELECT CAST(table_name AS varchar) FROM information_schema.tables where table_schema = 'test'"
+  pure $ concat xs
 
 createFoo :: DB ()
-createFoo = void $ T.execute_ [sql| CREATE SCHEMA test; CREATE TABLE test.foo (id SERIAL PRIMARY KEY)|]
+createFoo = void $ T.execute_ [sql| CREATE SCHEMA IF NOT EXISTS test; CREATE TABLE test.foo (id SERIAL PRIMARY KEY)|]
 
 createBar :: DB ()
-createBar = void $ T.execute_ [sql| CREATE TABLE test.bar (id SERIAL PRIMARY KEY)|]
+createBar = void $ T.execute_ [sql| CREATE SCHEMA IF NOT EXISTS test; CREATE TABLE test.bar (id SERIAL PRIMARY KEY)|]
 
 createQuux :: DB ()
-createQuux = void $ T.execute_ [sql| CREATE TABLE test.quux (id SERIAL PRIMARY KEY)|]
+createQuux = void $ T.execute_ [sql| CREATE SCHEMA IF NOT EXISTS test; CREATE TABLE test.quux (id SERIAL PRIMARY KEY)|]
 
 foo :: InputMigration
 foo = InputMigration createFoo [utcIso8601| 2048-12-01 |] (Binary "extra")

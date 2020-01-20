@@ -1,6 +1,8 @@
 #1/20/2020
 
 - Adding back `worldState` and `clear`
+- I don't understand how I was ever able to the test the reference implementation. Not sure how much value I get.
+  Going to remove it.
 
 #1/12/2020
 - I think I am confusing myself. There is another interface lurking in the design but it is not necessary that I reify it

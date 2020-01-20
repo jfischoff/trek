@@ -8,7 +8,7 @@ import Database.Trek.Db.Interface
 import Database.Trek.Db.TestInterface
 import Database.Trek.Db.TestInterface.Types
 -- import Data.Maybe
--- import Control.Monad (join)
+import Control.Monad ((<=<))
 import Control.Concurrent
 import Control.Concurrent.Async
 import Data.IORef
@@ -161,4 +161,22 @@ spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
 
     apply someAlreadyApplied `shouldReturn` Just onlyQuux
 
-  --rollbackIt "actions are preserved during migration : all partitions apply the same effects" $ do
+  -- TODO make exception safe
+  it "actions are preserved during migration : all partitions apply the same effects" $ \SpecState {ssRunner} -> do
+    let migrations = quux NonEmpty.:| [foo, bar]
+    forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
+      _ <- ssRunner clear
+
+      -- The problem is that this test can't work for the pure runner because there is no persistent state. I think
+      -- I need a ioref version or just remove the reference implementation
+      expectedWorldState <- mapM_ (ssRunner . sequenceA_ . fmap inputAction) parts >> ssRunner worldState
+      print expectedWorldState
+
+      _ <- ssRunner clear
+
+      -- print parts
+      actual <- ssRunner
+        (mapM_ (apply <=< inputGroup) parts >> worldState)
+      print actual
+
+      actual `shouldBe` expectedWorldState

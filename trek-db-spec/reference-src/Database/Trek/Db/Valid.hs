@@ -4,16 +4,18 @@ import Control.Monad.State
 import Data.List.NonEmpty (NonEmpty, fromList, nonEmpty)
 import Data.Foldable
 
-data WorldState = WorldState
-  { isVersions :: [NonEmpty (Version, Int)]
+type WorldState = [NonEmpty (Version, Int)]
+
+data InternalState = InternalState
+  { isVersions :: WorldState
   , isSetup    :: Bool
   , isCounter  :: Int
   } deriving (Show, Eq, Ord)
 
-initialWorldState :: WorldState
-initialWorldState = WorldState [] False 0
+initialInternalState :: InternalState
+initialInternalState = InternalState [] False 0
 
-type DB = StateT WorldState IO
+type DB = StateT InternalState IO
 
 type Version = Int
 
@@ -24,10 +26,10 @@ data InputMigration = InputMigration
   }
 
 clear :: DB ()
-clear = put initialWorldState
+clear = put initialInternalState
 
 worldState :: DB WorldState
-worldState = get
+worldState = isVersions <$> get
 
 type InputGroup = NonEmpty InputMigration
 
@@ -54,7 +56,7 @@ flattenVersions =  concat . fmap toList
 apply :: InputGroup -> DB (Maybe OutputGroup)
 apply xs = do
   setup
-  WorldState {isVersions, isSetup} <- get
+  InternalState {isVersions, isSetup} <- get
 
   let allVersions = map fst $ flattenVersions isVersions
       migrationsToApply = filter (not . flip elem allVersions . inputVersion) $ toList xs
@@ -64,13 +66,13 @@ apply xs = do
     Nothing -> pure (isVersions, Nothing)
     Just ys -> pure (isVersions <> [fmap (\x -> (inputVersion x, inputHash x)) ys], Just $ fmap inputVersion ys)
 
-  put . WorldState newVersions isSetup =<< gets isCounter
+  put . InternalState newVersions isSetup =<< gets isCounter
 
   pure res
 
 listApplications :: DB (Maybe [OutputGroup])
 listApplications = do
-  WorldState {isVersions, isSetup} <- get
+  InternalState {isVersions, isSetup} <- get
   if not isSetup
     then pure Nothing
     else pure $ Just $ map (fmap fst) isVersions
@@ -78,7 +80,7 @@ listApplications = do
 hashConflicts :: [InputMigration] -> DB (Maybe [Version])
 hashConflicts [] = pure $ Just []
 hashConflicts xs = do
-  WorldState {isVersions, isSetup} <- get
+  InternalState {isVersions, isSetup} <- get
   if not isSetup
     then pure Nothing
     else do

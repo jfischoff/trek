@@ -5,6 +5,8 @@ import Database.Trek.Db.Interface
 
 data InputMigration
 
+inputAction :: InputMigration -> DB ()
+
 foo :: InputMigration
 bar :: InputMigration
 quux :: InputMigration
@@ -20,5 +22,8 @@ dbRunner :: (SpecStateM DB -> IO ()) -> IO ()
 clear :: DB ()
 
 data WorldState
+
+instance Eq WorldState
+instance Show WorldState
 
 worldState :: DB WorldState
