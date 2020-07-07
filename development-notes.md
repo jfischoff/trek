@@ -1,3 +1,10 @@
+#7/6/2020
+- Was able to get the project to compile again. Tests pass. Not sure what to do next.
+- Overall this project seems to complicated.
+- I need tests to the user facing exe.
+- Finish those write the code.
+- try to use it
+
 #1/20/2020
 
 - Adding back `worldState` and `clear`
