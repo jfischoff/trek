@@ -1,4 +1,0 @@
-signature Database.Trek.CmdLine where
-
-apply :: IO ()
-create :: IO ()
