@@ -111,8 +111,6 @@ install:
     echo "packages: trek-db-spec" >> cabal.project
     echo "packages: trek-db" >> cabal.project
     echo "packages: trek" >> cabal.project
-    echo "packages: trek-cmd-line-interface" >> cabal.project
-    echo "packages: trek-cmd-line-spec" >> cabal.project
   - |
   - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
@@ -122,8 +120,6 @@ install:
   - if [ -f "trek-db-spec/configure.ac" ]; then (cd "trek-db-spec" && autoreconf -i); fi
   - if [ -f "trek-db/configure.ac" ]; then (cd "trek-db" && autoreconf -i); fi
   - if [ -f "trek/configure.ac" ]; then (cd "trek" && autoreconf -i); fi
-  - if [ -f "trek-cmd-line-interface/configure.ac" ]; then (cd "trek-cmd-line-interface" && autoreconf -i); fi
-  - if [ -f "trek-cmd-line-spec/configure.ac" ]; then (cd "trek-cmd-line-spec" && autoreconf -i); fi
   - ${CABAL} v2-freeze $WITHCOMPILER ${TEST} ${BENCH} | color_cabal_output
   - "cat cabal.project.freeze | sed -E 's/^(constraints: *| *)//' | sed 's/any.//'"
   - rm  cabal.project.freeze
@@ -142,8 +138,6 @@ script:
   - PKGDIR_trek_db_spec="$(find . -maxdepth 1 -type d -regex '.*/trek-db-spec-[0-9.]*')"
   - PKGDIR_trek_db="$(find . -maxdepth 1 -type d -regex '.*/trek-db-[0-9.]*')"
   - PKGDIR_trek="$(find . -maxdepth 1 -type d -regex '.*/trek-[0-9.]*')"
-  - PKGDIR_trek_cmd_line_interface="$(find . -maxdepth 1 -type d -regex '.*/trek-cmd-line-interface-[0-9.]*')"
-  - PKGDIR_trek_cmd_line_spec="$(find . -maxdepth 1 -type d -regex '.*/trek-cmd-line-spec-[0-9.]*')"
   # Generate cabal.project
   - rm -rf cabal.project cabal.project.local cabal.project.freeze
   - touch cabal.project
@@ -153,8 +147,6 @@ script:
     echo "packages: ${PKGDIR_trek_db_spec}" >> cabal.project
     echo "packages: ${PKGDIR_trek_db}" >> cabal.project
     echo "packages: ${PKGDIR_trek}" >> cabal.project
-    echo "packages: ${PKGDIR_trek_cmd_line_interface}" >> cabal.project
-    echo "packages: ${PKGDIR_trek_cmd_line_spec}" >> cabal.project
   - |
   - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
@@ -173,8 +165,6 @@ script:
   - (cd ${PKGDIR_trek_db_spec} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek_db} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_trek_cmd_line_interface} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_trek_cmd_line_spec} && ${CABAL} -vnormal check)
   # haddock...
   - ${CABAL} v2-haddock $WITHCOMPILER --with-haddock $HADDOCK ${TEST} ${BENCH} all | color_cabal_output
   # Building without installed constraints for packages in global-db...
