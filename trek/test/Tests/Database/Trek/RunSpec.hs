@@ -3,7 +3,7 @@ import Database.Trek.Run
 import Test.Hspec
 import Data.Maybe
 import Data.List.Split
-import Data.Time.Format.ISO8601
+import Data.Time.Format
 import System.IO.Temp
 import System.Directory
 import Control.Exception
@@ -19,5 +19,5 @@ spec = describe "Database.Trek.Parser" $ do
         output <- create name
         let [actualName, date] = splitOn "_" output
         actualName `shouldBe` name
-        isJust (iso8601ParseM date :: Maybe UTCTime) `shouldBe` True
+        isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" date :: Maybe UTCTime) `shouldBe` True
         doesFileExist output `shouldReturn` True

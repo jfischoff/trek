@@ -26,10 +26,20 @@ source-repository head
   type: git
   location: https://github.com/jfischoff/trek
 
+
+executable trek
+  main-is: Main.hs
+  hs-source-dirs: app
+  build-depends:
+      base >=4.7 && <5
+    , optparse-generic
+    , trek
+  default-language: Haskell2010
+  default-extensions: OverloadedStrings
+
 library
   exposed-modules:
-      Database.Trek.Main
-    , Database.Trek.Run
+      Database.Trek.Run
     , Database.Trek.Parser
   hs-source-dirs:
       src
