@@ -7,8 +7,8 @@
 
 ### Example
 ```bash
-$ trek create migration
-migration-2020-07-09T06-21-12.sql
+$ trek create path/migration
+path/2020-07-09T06-21-12-migration.sql
 ```
 ### Description
 
