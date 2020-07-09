@@ -5,6 +5,7 @@ import System.Environment
 import Options.Generic
 import Database.PostgreSQL.Simple.PartialOptions
 
+
 spec :: Spec
 spec = describe "Database.Trek.Parser" $ do
   it "parses create" $
