@@ -7,7 +7,8 @@
 
 ### Example
 ```bash
-$ trek create NAME
+$ trek create migration
+migration-2020-07-09T06:21:12.667796Z
 ```
 ### Description
 
