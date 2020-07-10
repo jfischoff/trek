@@ -17,7 +17,7 @@ spec = describe "Database.Trek.Parser" $ do
       bracket_ (setCurrentDirectory tmp) (setCurrentDirectory old) $ do
         let name = "migration"
         output <- create name
-        let [actualName, date] = splitOn "_" output
+        let [date, actualName] = splitOn "_" output
         actualName `shouldBe` name
         isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" date :: Maybe UTCTime) `shouldBe` True
         doesFileExist output `shouldReturn` True
