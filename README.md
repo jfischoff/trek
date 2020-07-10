@@ -7,14 +7,14 @@
 
 ### Example
 ```bash
-$ trek create path/migration
+$ trek create path/migration.sql
 path/2020-07-09T06-21-12-migration.sql
 ```
 ### Description
 
 #### Successful Behavior
 
-`create NAME` will make a `NAME-VERSION.sql` file in the path pointed at by `NAME` using the current date time as ISO8601 `VERSION`.
+`create NAME` will make a `VERSION-NAME` file in the path pointed at by `NAME` using the current date time as ISO8601 `VERSION`.
 
 If the file exists `create` will retry **one time only** with a version incremented by one second.
 
