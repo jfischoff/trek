@@ -57,6 +57,12 @@ library
     , trek-db
     , postgres-options >= 0.2.0.0
     , filepath
+    , aeson
+    , cryptohash-sha256
+    , postgresql-simple
+    , semigroups
+    , directory
+    , pg-transact
   default-language: Haskell2010
 
 test-suite test

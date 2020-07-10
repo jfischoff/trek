@@ -3,15 +3,15 @@ import Options.Generic
 import Database.PostgreSQL.Simple.PartialOptions
 import qualified Options.Applicative.Builder as B
 
-data Command = Apply FilePath PartialOptions | Create String
+data Command = Apply PartialOptions FilePath | Create String
   deriving (Show, Eq, Generic)
 
 instance ParseRecord Command where
   parseRecord = do
     let applyParser
            =  Apply
-          <$> B.strArgument (B.metavar "FILEPATH")
-          <*> parseRecord
+          <$> parseRecord
+          <*> B.strArgument (B.metavar "FILEPATH")
 
         createParser
           = Create <$> B.strArgument (B.metavar "NAME")

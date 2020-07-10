@@ -45,7 +45,7 @@ type Time = UTCTime
 data InputMigration = InputMigration
   { inputAction  :: DB ()
   , inputVersion :: Version
-  , inputHash    :: (Binary Hash)
+  , inputHash    :: Binary Hash
   }
 
 instance Psql.ToRow InputMigration where
