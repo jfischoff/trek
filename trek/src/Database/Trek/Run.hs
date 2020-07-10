@@ -14,7 +14,7 @@ eval = \case
 create :: String -> IO String
 create name = do
   now <- getCurrentTime
-  let outputFile = name <> "_" <> formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" now
+  let outputFile = formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" now <> "_" <> name
   withFile outputFile WriteMode (const $ pure ())
   pure outputFile
 
