@@ -5,6 +5,7 @@ import Data.Time.Format
 import Data.Time
 import System.IO
 import Database.Trek.Parser
+import System.FilePath.Posix
 
 eval :: Command -> IO ()
 eval = \case
@@ -14,9 +15,11 @@ eval = \case
 create :: String -> IO String
 create name = do
   now <- getCurrentTime
-  let outputFile = formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" now <> "_" <> name
-  withFile outputFile WriteMode (const $ pure ())
-  pure outputFile
+  let (dir, theFileName) = splitFileName name
+      outputFile = formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S" now <> "_" <> theFileName
+      outputFilePath = dir </> outputFile
+  withFile outputFilePath WriteMode (const $ pure ())
+  pure outputFilePath
 
 apply :: P.Options -> FilePath -> IO (Maybe OutputGroup)
 apply = undefined

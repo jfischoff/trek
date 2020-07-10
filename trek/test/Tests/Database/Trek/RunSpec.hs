@@ -8,6 +8,7 @@ import System.IO.Temp
 import System.Directory
 import Control.Exception
 import Data.Time
+import System.FilePath.Posix
 
 spec :: Spec
 spec = describe "Database.Trek.Parser" $ do
@@ -15,9 +16,12 @@ spec = describe "Database.Trek.Parser" $ do
     withSystemTempDirectory "trek-test" $ \tmp -> do
       old <- getCurrentDirectory
       bracket_ (setCurrentDirectory tmp) (setCurrentDirectory old) $ do
-        let name = "migration"
+        createDirectory "path"
+        let name = "path/migration.sql"
         output <- create name
-        let [date, actualName] = splitOn "_" output
-        actualName `shouldBe` name
-        isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S.sql" date :: Maybe UTCTime) `shouldBe` True
+        let (dir, theFileName) = splitFileName output
+            [date, actualName] = splitOn "_" theFileName
+        dir `shouldBe` "path/"
+        actualName `shouldBe` "migration.sql"
+        isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date :: Maybe UTCTime) `shouldBe` True
         doesFileExist output `shouldReturn` True
