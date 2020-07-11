@@ -26,6 +26,9 @@ import Database.PostgreSQL.Simple.Transaction
 import qualified Data.ByteString.Base64 as Base64
 import qualified Database.PostgreSQL.Simple as Psql
 
+type DB = IO
+type InputGroup = FilePath
+
 data Errors = CouldNotParseMigration FilePath
             | DirectoryDoesNotExist FilePath
   deriving (Show, Eq, Typeable)
@@ -95,6 +98,7 @@ instance ToJSON OutputMigration where
     ]
 
 newtype OutputGroup = OutputGroup Db.OutputGroup
+  deriving (Show, Eq)
 
 instance ToJSON OutputGroup where
   toJSON (OutputGroup (Db.OutputGroup {..})) = do

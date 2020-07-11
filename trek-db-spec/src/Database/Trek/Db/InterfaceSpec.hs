@@ -167,16 +167,12 @@ spec = withTestDB $ describe "Tests.Database.Trek.Db.Interface" $ do
     forM_ (nonEmptyPartitionsOf migrations) $ \parts -> do
       _ <- ssRunner clear
 
-      -- The problem is that this test can't work for the pure runner because there is no persistent state. I think
-      -- I need a ioref version or just remove the reference implementation
       expectedWorldState <- mapM_ (ssRunner . sequenceA_ . fmap inputAction) parts >> ssRunner worldState
       print expectedWorldState
 
       _ <- ssRunner clear
 
-      -- print parts
       actual <- ssRunner
         (mapM_ (apply <=< inputGroup) parts >> worldState)
-      print actual
 
       actual `shouldBe` expectedWorldState

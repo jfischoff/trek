@@ -14,15 +14,12 @@ module Database.Trek.DbTest
   ) where
 import Database.Trek.Db
 import Database.Trek.Db.TestInterface.Types
--- import Data.List.NonEmpty (NonEmpty)
--- import qualified Data.List.NonEmpty as NonEmpty
 import Data.Time.QQ
 import qualified Database.Postgres.Temp as Temp
 import qualified Database.PostgreSQL.Transact as T
 import qualified Database.PostgreSQL.Simple as Psql
 import Database.PostgreSQL.Simple.SqlQQ
 import Control.Exception
--- import Data.Text (Text)
 import Control.Monad (void)
 import Data.Pool
 import qualified Data.List.NonEmpty as NonEmpty
