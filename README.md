@@ -58,8 +58,7 @@ $ trek apply DIRPATH
 #### Errors
 
 - If any of the sql files fail the transaction will be aborted and `trek` will return an exit code of `1`.
-- if `DIRPATH` contains zero `*.sql` files `apply` returns a exit code of `2`.
-- if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `3`.
+- if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `2`.
 
 #### Environment Variables
 
