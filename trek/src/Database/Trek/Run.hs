@@ -25,9 +25,8 @@ import qualified Database.PostgreSQL.Transact as T
 import Database.PostgreSQL.Simple.Transaction
 import qualified Data.ByteString.Base64 as Base64
 import qualified Database.PostgreSQL.Simple as Psql
-
-type DB = IO
-type InputGroup = FilePath
+import Data.List.Split
+import Data.Maybe
 
 data Errors = CouldNotParseMigration FilePath
             | DirectoryDoesNotExist FilePath
@@ -74,7 +73,9 @@ withOptions options f =
   bracket (Psql.connectPostgreSQL $ P.toConnectionString options) Psql.close f
 
 parseVersion :: FilePath -> Maybe UTCTime
-parseVersion = parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S"
+parseVersion filePath = do
+  date <- listToMaybe $ splitOn "_" $ takeFileName filePath
+  parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date
 
 computeHash :: String -> Binary Db.Hash
 computeHash = Binary . hash . BSC.pack
@@ -116,6 +117,6 @@ groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
 apply :: P.Options -> FilePath -> IO (Maybe OutputGroup)
 apply options dirPath = do
-  xs <- mapM makeInputMigration =<< listDirectory dirPath
+  xs <- mapM (makeInputMigration . (dirPath </>)) =<< listDirectory dirPath
   withOptions options $ \conn -> fmap (fmap OutputGroup . join) $ forM (nonEmpty xs) $ \theNonEmpty ->
     T.runDBT (Db.apply =<< Db.inputGroup theNonEmpty) ReadCommitted conn

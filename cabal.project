@@ -1,6 +1,3 @@
 
-packages: trek-db-test-types/
-          trek-db-interface/
-          trek-db-spec/
-          trek-db/
+packages: trek-db/
           trek/
