@@ -60,3 +60,4 @@ tags
 ghcid.txt
 dist-newstyle/
 cabal.project.local
+stack.yaml.lock
