@@ -97,7 +97,7 @@ toOutputMigration InputMigration {..} = OutputMigration
 
 toOutput :: InputGroup -> DB OutputGroup
 toOutput InputGroup {..} = pure OutputGroup
-  { ogId = GroupId $ Psql.Binary $ makeGroupHash $ NonEmpty.toList inputGroupMigrations
+  { ogId = GroupId $ Psql.Binary $ makeGroupHash inputGroupCreateAd $ NonEmpty.toList inputGroupMigrations
   , ogCreatedAt = inputGroupCreateAd
   , ogMigrations = fmap toOutputMigration inputGroupMigrations
   }
