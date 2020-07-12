@@ -14,7 +14,7 @@ path/2020-07-09T06-21-12-migration.sql
 
 #### Successful Behavior
 
-`create NAME` will make a `VERSION-NAME` file in the path pointed at by `NAME` using the current date time as ISO8601 `VERSION`.
+`create NAME` will make a `VERSION-NAME` file in the path pointed at by `NAME` using the current date time as `%Y-%m-%dT%H-%M-%S`.
 
 If the file exists `create` will retry **one time only** with a version incremented by one second.
 
@@ -46,7 +46,7 @@ $ trek apply DIRPATH
 
 #### Successful Behavior
 
-`apply` executes the the non-applied migrations (`*.sql` files) in `DIRPATH` together in a single `SERIALIZABLE` transaction.
+`apply` executes the the non-applied migrations (`*.sql` files) in `DIRPATH` together in a single `READ COMMITTED` transaction.
 
 `apply` returns a JSON list of migrations entries as seen in the example above. *The formatting of `trek` JSON is not shown*.
 
@@ -58,4 +58,4 @@ $ trek apply DIRPATH
 
 #### Environment Variables
 
-You can configure `trek` by setting the standard postgres connection [parameters](https://www.postgresql.org/docs/current/libpq-envars.html).
+You can configure `trek` by setting the standard postgres connection [environment parameters](https://www.postgresql.org/docs/current/libpq-envars.html) or via command line arguments. See `apply --help` for details.
