@@ -18,7 +18,7 @@ import Data.Aeson
 import System.Exit
 import System.IO.Error
 import Control.Monad
-import Data.List.NonEmpty
+import Data.List.NonEmpty (nonEmpty)
 import System.Directory
 import Data.Foldable
 import qualified Database.PostgreSQL.Transact as T
@@ -118,6 +118,7 @@ groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
 apply :: P.Options -> FilePath -> IO (Maybe OutputGroup)
 apply options dirPath = do
-  xs <- mapM (makeInputMigration . (dirPath </>)) =<< listDirectory dirPath
+  xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
+    =<< listDirectory dirPath
   withOptions options $ \conn -> fmap (fmap OutputGroup . join) $ forM (nonEmpty xs) $ \theNonEmpty ->
     T.runDBT (Db.apply =<< Db.inputGroup theNonEmpty) ReadCommitted conn
