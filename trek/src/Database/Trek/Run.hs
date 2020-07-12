@@ -27,6 +27,7 @@ import qualified Data.ByteString.Base64 as Base64
 import qualified Database.PostgreSQL.Simple as Psql
 import Data.List.Split
 import Data.Maybe
+import Data.Aeson.Encode.Pretty
 
 data Errors = CouldNotParseMigration FilePath
             | DirectoryDoesNotExist FilePath
@@ -42,7 +43,7 @@ eval cmd = do
           let options = either (const $ error "Partial db options. Not possible") id
                       $ Partial.completeOptions partialOptions
 
-          traverse_ (BSL.putStrLn . encode) =<< apply options filePath
+          traverse_ (BSL.putStrLn . encodePretty) =<< apply options filePath
 
   try e >>= \case
     Left err -> case err of

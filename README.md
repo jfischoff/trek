@@ -27,18 +27,23 @@ If the file exists `create` will retry **one time only** with a version incremen
 ### Example
 ```bash
 $ trek apply DIRPATH
-{ "hash" : "503dc144019a6d61db66b854c6e01127b94f644d"
-, "created_at" : "2020-01-01T22:31:04"
-, "migrations" :
-    [ { "name"    : "foo"
-      , "version" : "2019-01-01T22:31:04"
-      , "hash"    : "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"
-      }
-    , { "name"    : "bar"
-      , "version" : "2019-02-01T22:31:04"
-      , "hash"    : "62cdb7020ff920e5aa642c3d4066950dd1f01f4d"
-      }
-    ]
+{
+    "migrations": [
+        {
+            "hash": "TBCJw6kwo28hSb39YPrLk9fI4IlToG17s+PwG8JQLUk=",
+            "version": "2020-07-12T06:21:21Z"
+        },
+        {
+            "hash": "A+Gb17iQkxBuDsOvNKfQfi30U5I510vfaa0E0UEnWjc=",
+            "version": "2020-07-12T06:21:27Z"
+        },
+        {
+            "hash": "ECrdIikOzM8ZZG1uCMXpYdQtTkGFO/+nLwmFi6PeVHo=",
+            "version": "2020-07-12T06:21:32Z"
+        }
+    ],
+    "created_at": "2020-07-12T18:29:04.7395Z",
+    "id": "KgnJYCdJlarNU25q8SZDCPIfXxs="
 }
 ```
 
@@ -48,7 +53,7 @@ $ trek apply DIRPATH
 
 `apply` executes the the non-applied migrations (`*.sql` files) in `DIRPATH` together in a single `READ COMMITTED` transaction.
 
-`apply` returns a JSON list of migrations entries as seen in the example above. *The formatting of `trek` JSON is not shown*.
+`apply` returns a JSON list of migrations entries as seen in the example above.
 
 #### Errors
 

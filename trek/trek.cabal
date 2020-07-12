@@ -65,6 +65,7 @@ library
     , pg-transact
     , base64-bytestring
     , split
+    , aeson-pretty
   default-language: Haskell2010
 
 test-suite test
