@@ -18,7 +18,7 @@ path/2020-07-09T06-21-12-migration.sql
 
 #### Errors
 
-`create` will return a exit code of `1` if the file creation fails for any reason.
+`create` will return a exit code of `4` if the directory to the migration does not exist. Otherwise it will return `1` if an unknown error occurs.
 
 ## `trek apply`
 
