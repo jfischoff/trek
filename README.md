@@ -16,8 +16,6 @@ path/2020-07-09T06-21-12-migration.sql
 
 `create NAME` will make a `VERSION-NAME` file in the path pointed at by `NAME` using the current date time as `%Y-%m-%dT%H-%M-%S`.
 
-If the file exists `create` will retry **one time only** with a version incremented by one second.
-
 #### Errors
 
 `create` will return a exit code of `1` if the file creation fails for any reason.
