@@ -20,6 +20,7 @@ import qualified Database.Trek.Db as Db
 import Database.PostgreSQL.Simple.Types
 import Data.Time.QQ
 import qualified Database.PostgreSQL.Simple as Psql
+import Paths_trek (getDataDir)
 
 aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
 aroundAll withFunc specWith = do
@@ -91,7 +92,9 @@ spec = do
       apply options tmp `shouldReturn` Nothing
 
     it "standard migrations succeed" $ \options -> do
-      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply options "data"
+      dataDir <- fmap (</> "data") getDataDir
+
+      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply options dataDir
       let fooM :| [barM, quuxM] = ogMigrations
       fooM  `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
@@ -116,4 +119,4 @@ spec = do
       withOptions options action `shouldReturn` ["bar", "foo", "quux"]
 
     it "reapplying does nothing" $ \options -> do
-      apply options "data" `shouldReturn` Nothing
+      (apply options . (</> "data") =<< getDataDir) `shouldReturn` Nothing

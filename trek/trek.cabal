@@ -20,6 +20,8 @@ build-type:     Simple
 tested-with: GHC==8.8.1
 category: Database
 synopsis: A PostgreSQL Database Migrator
+data-files: data/*.sql
+          , data/*.txt
 
 
 source-repository head
@@ -73,6 +75,7 @@ test-suite test
   main-is: Spec.hs
   other-modules: Tests.Database.Trek.ParserSpec
                , Tests.Database.Trek.RunSpec
+               , Paths_trek
 
   hs-source-dirs: test
   default-extensions:
