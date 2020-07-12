@@ -24,14 +24,6 @@ type WorldState = String
 -- Functions that should live somewhere else
 -------------------------------------------------------------------------------
 -- This is sequential subsets!
-{-
-nonEmptySubsetsOf :: NonEmpty a -> NonEmpty (NonEmpty a)
-nonEmptySubsetsOf = \case
-  xs@(_ :| []) -> xs :| []
-  x :| y:ys ->
-    let subs = nonEmptySubsetsOf (y :| ys)
-    in fmap (cons x) subs <> subs
--}
 
 nonEmptyPartitionsOf :: NonEmpty a -> NonEmpty (NonEmpty (NonEmpty a))
 nonEmptyPartitionsOf = fromList . fmap fromList . fmap (fmap fromList) . partitions . toList
