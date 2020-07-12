@@ -13,7 +13,7 @@ spec = describe "Database.Trek.Parser" $ do
      getRecord "trek" `shouldReturn` Create "foo"
   it "parses apply" $
     withArgs ["apply", "/path/to/migrations"] $
-      getRecord "trek" `shouldReturn` Apply "/path/to/migrations" mempty
+      getRecord "trek" `shouldReturn` Apply mempty "/path/to/migrations"
   it "parses apply" $
     withArgs ["apply", "/path/to/migrations", "--dbname=db"] $
-      getRecord "trek" `shouldReturn` Apply "/path/to/migrations" (mempty { dbname = pure "db"})
+      getRecord "trek" `shouldReturn` Apply (mempty { dbname = pure "db"}) "/path/to/migrations"

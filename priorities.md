@@ -1,4 +1,3 @@
-- Remove setup apply #13
-- Finish CmdLineSpec.hs #9
+- Integration tests
 - The hash should be the primary key of the migration #7
 - Pass in created_at instead of generating in the db. #4

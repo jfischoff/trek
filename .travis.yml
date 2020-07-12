@@ -106,18 +106,12 @@ install:
   - rm -rf cabal.project cabal.project.local cabal.project.freeze
   - touch cabal.project
   - |
-    echo "packages: trek-db-test-types" >> cabal.project
-    echo "packages: trek-db-interface" >> cabal.project
-    echo "packages: trek-db-spec" >> cabal.project
     echo "packages: trek-db" >> cabal.project
     echo "packages: trek" >> cabal.project
   - |
   - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-cmd-line-interface|trek-cmd-line-spec|trek-db|trek-db-interface|trek-db-spec|trek-db-test-types)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
-  - if [ -f "trek-db-test-types/configure.ac" ]; then (cd "trek-db-test-types" && autoreconf -i); fi
-  - if [ -f "trek-db-interface/configure.ac" ]; then (cd "trek-db-interface" && autoreconf -i); fi
-  - if [ -f "trek-db-spec/configure.ac" ]; then (cd "trek-db-spec" && autoreconf -i); fi
   - if [ -f "trek-db/configure.ac" ]; then (cd "trek-db" && autoreconf -i); fi
   - if [ -f "trek/configure.ac" ]; then (cd "trek" && autoreconf -i); fi
   - ${CABAL} v2-freeze $WITHCOMPILER ${TEST} ${BENCH} | color_cabal_output
@@ -133,18 +127,12 @@ script:
   - cd ${DISTDIR} || false
   - find . -maxdepth 1 -type f -name '*.tar.gz' -exec tar -xvf '{}' \;
   - find . -maxdepth 1 -type f -name '*.tar.gz' -exec rm       '{}' \;
-  - PKGDIR_trek_db_test_types="$(find . -maxdepth 1 -type d -regex '.*/trek-db-test-types-[0-9.]*')"
-  - PKGDIR_trek_db_interface="$(find . -maxdepth 1 -type d -regex '.*/trek-db-interface-[0-9.]*')"
-  - PKGDIR_trek_db_spec="$(find . -maxdepth 1 -type d -regex '.*/trek-db-spec-[0-9.]*')"
   - PKGDIR_trek_db="$(find . -maxdepth 1 -type d -regex '.*/trek-db-[0-9.]*')"
   - PKGDIR_trek="$(find . -maxdepth 1 -type d -regex '.*/trek-[0-9.]*')"
   # Generate cabal.project
   - rm -rf cabal.project cabal.project.local cabal.project.freeze
   - touch cabal.project
   - |
-    echo "packages: ${PKGDIR_trek_db_test_types}" >> cabal.project
-    echo "packages: ${PKGDIR_trek_db_interface}" >> cabal.project
-    echo "packages: ${PKGDIR_trek_db_spec}" >> cabal.project
     echo "packages: ${PKGDIR_trek_db}" >> cabal.project
     echo "packages: ${PKGDIR_trek}" >> cabal.project
   - |
@@ -160,9 +148,6 @@ script:
   # Testing...
   - ${CABAL} v2-test $WITHCOMPILER ${TEST} ${BENCH} all | color_cabal_output
   # cabal check...
-  - (cd ${PKGDIR_trek_db_test_types} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_trek_db_interface} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_trek_db_spec} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek_db} && ${CABAL} -vnormal check)
   - (cd ${PKGDIR_trek} && ${CABAL} -vnormal check)
   # haddock...
