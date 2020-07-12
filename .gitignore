@@ -30,7 +30,6 @@ stdout.txt
 # Logs and databases #
 ######################
 *.log
-*.sql
 *.sqlite
 
 #keys
