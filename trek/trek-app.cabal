@@ -43,8 +43,8 @@ library
   exposed-modules:
       Database.Trek.Run
     , Database.Trek.Parser
-  other-modules: Paths_trek
-  autogen-modules: Paths_trek
+  other-modules: Paths_trek_app
+  autogen-modules: Paths_trek_app
   hs-source-dirs:
       src
   default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
@@ -77,8 +77,8 @@ test-suite test
   main-is: Spec.hs
   other-modules: Tests.Database.Trek.ParserSpec
                , Tests.Database.Trek.RunSpec
-               , Paths_trek
-  autogen-modules: Paths_trek
+               , Paths_trek_app
+  autogen-modules: Paths_trek_app
   hs-source-dirs: test
   default-extensions:
       NamedFieldPuns
