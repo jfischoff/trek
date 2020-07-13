@@ -45,14 +45,20 @@ eval cmd = do
 
           traverse_ (BSL.putStrLn . encodePretty) =<< apply options filePath
 
-  try e >>= \case
-    Left err -> case err of
-      CouldNotParseMigration filePath -> do
-        hPutStrLn stderr $ "Could not parse migration: " <> filePath
-        exitWith $ ExitFailure 2
-      DirectoryDoesNotExist filePath -> do
-        hPutStrLn stderr $ "Directory does not exist: " <> filePath
-        exitWith $ ExitFailure 4
+  let action = try e >>= \case
+        Left err -> case err of
+          CouldNotParseMigration filePath -> do
+            hPutStrLn stderr $ "Could not parse migration: " <> filePath
+            exitWith $ ExitFailure 2
+          DirectoryDoesNotExist filePath -> do
+            hPutStrLn stderr $ "Directory does not exist: " <> filePath
+            exitWith $ ExitFailure 4
+        Right () -> pure ()
+
+  try action >>= \case
+    Left (e :: SomeException) -> do
+      hPutStrLn stderr $ "Unknown error: " <> show e
+      exitWith $ ExitFailure 1
     Right () -> pure ()
 
 create :: String -> IO String
