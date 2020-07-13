@@ -6,7 +6,7 @@ cabal-version: 2.0
 --
 -- hash: ab7f58e2ba372fd8cc72dcb41598085a170ea1109e6522551fd9f2b2d1fd5bde
 
-name:           trek
+name:           trek-app
 version:        0.1.0.0
 description:    Please see the README on GitHub at <https://github.com/jfischoff/trek#readme>
 homepage:       https://github.com/jfischoff/trek#readme
@@ -35,7 +35,7 @@ executable trek
   build-depends:
       base >=4.7 && <5
     , optparse-generic
-    , trek
+    , trek-app
   default-language: Haskell2010
   default-extensions: OverloadedStrings
 
@@ -43,8 +43,8 @@ library
   exposed-modules:
       Database.Trek.Run
     , Database.Trek.Parser
-  other-modules: Paths_trek
-  autogen-modules: Paths_trek
+  other-modules: Paths_trek_app
+  autogen-modules: Paths_trek_app
   hs-source-dirs:
       src
   default-extensions: DataKinds GADTs KindSignatures QuasiQuotes RecordWildCards LambdaCase RankNTypes ScopedTypeVariables OverloadedStrings GeneralizedNewtypeDeriving DerivingVia DeriveGeneric DeriveAnyClass TupleSections
@@ -77,8 +77,8 @@ test-suite test
   main-is: Spec.hs
   other-modules: Tests.Database.Trek.ParserSpec
                , Tests.Database.Trek.RunSpec
-               , Paths_trek
-  autogen-modules: Paths_trek
+               , Paths_trek_app
+  autogen-modules: Paths_trek_app
   hs-source-dirs: test
   default-extensions:
       NamedFieldPuns
@@ -99,7 +99,7 @@ test-suite test
     , hspec
     , hspec-discover
     , time
-    , trek
+    , trek-app
     , optparse-generic
     , postgresql-simple-opts >= 0.6.0.1
     , split

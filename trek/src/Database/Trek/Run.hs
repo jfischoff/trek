@@ -56,8 +56,8 @@ eval cmd = do
         Right () -> pure ()
 
   try action >>= \case
-    Left (e :: SomeException) -> do
-      hPutStrLn stderr $ "Unknown error: " <> show e
+    Left (finalErr :: SomeException) -> do
+      hPutStrLn stderr $ "Unknown error: " <> show finalErr
       exitWith $ ExitFailure 1
     Right () -> pure ()
 

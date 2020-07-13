@@ -20,7 +20,7 @@ import qualified Database.Trek.Db as Db
 import Database.PostgreSQL.Simple.Types
 import Data.Time.QQ
 import qualified Database.PostgreSQL.Simple as Psql
-import Paths_trek (getDataDir)
+import Paths_trek_app (getDataDir)
 
 aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
 aroundAll withFunc specWith = do

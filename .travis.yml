@@ -109,7 +109,7 @@ install:
     echo "packages: trek-db" >> cabal.project
     echo "packages: trek" >> cabal.project
   - |
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-db)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek-app|trek-db)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   - if [ -f "trek-db/configure.ac" ]; then (cd "trek-db" && autoreconf -i); fi
@@ -129,15 +129,15 @@ script:
   - find . -maxdepth 1 -type f -name '*.tar.gz' -exec tar -xvf '{}' \;
   - find . -maxdepth 1 -type f -name '*.tar.gz' -exec rm       '{}' \;
   - PKGDIR_trek_db="$(find . -maxdepth 1 -type d -regex '.*/trek-db-[0-9.]*')"
-  - PKGDIR_trek="$(find . -maxdepth 1 -type d -regex '.*/trek-[0-9.]*')"
+  - PKGDIR_trek_app="$(find . -maxdepth 1 -type d -regex '.*/trek-app-[0-9.]*')"
   # Generate cabal.project
   - rm -rf cabal.project cabal.project.local cabal.project.freeze
   - touch cabal.project
   - |
     echo "packages: ${PKGDIR_trek_db}" >> cabal.project
-    echo "packages: ${PKGDIR_trek}" >> cabal.project
+    echo "packages: ${PKGDIR_trek_app}" >> cabal.project
   - |
-  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek|trek-db)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
+  - "for pkg in $($HCPKG list --simple-output); do echo $pkg | sed 's/-[^-]*$//' | (grep -vE -- '^(trek-app|trek-db)$' || true) | sed 's/^/constraints: /' | sed 's/$/ installed/' >> cabal.project.local; done"
   - cat cabal.project || true
   - cat cabal.project.local || true
   # Building...
@@ -150,7 +150,7 @@ script:
   - ${CABAL} v2-test $WITHCOMPILER ${TEST} ${BENCH} all | color_cabal_output
   # cabal check...
   - (cd ${PKGDIR_trek_db} && ${CABAL} -vnormal check)
-  - (cd ${PKGDIR_trek} && ${CABAL} -vnormal check)
+  - (cd ${PKGDIR_trek_app} && ${CABAL} -vnormal check)
   # haddock...
   - ${CABAL} v2-haddock $WITHCOMPILER --with-haddock $HADDOCK ${TEST} ${BENCH} all | color_cabal_output
   # Building without installed constraints for packages in global-db...
