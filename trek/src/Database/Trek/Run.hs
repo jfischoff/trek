@@ -48,10 +48,10 @@ eval cmd = do
   try e >>= \case
     Left err -> case err of
       CouldNotParseMigration filePath -> do
-        putStrLn $ "Could not parse migration: " <> filePath
+        hPutStrLn stderr $ "Could not parse migration: " <> filePath
         exitWith $ ExitFailure 2
       DirectoryDoesNotExist filePath -> do
-        putStrLn $ "Directory does not exist: " <> filePath
+        hPutStrLn stderr $ "Directory does not exist: " <> filePath
         exitWith $ ExitFailure 4
     Right () -> pure ()
 
