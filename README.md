@@ -1,5 +1,4 @@
 [![Travis CI Status](https://travis-ci.org/jfischoff/trek.svg?branch=master)](http://travis-ci.org/jfischoff/trek)
-# Aspirational README. WIP.
 
 `trek` is a simple database migrator. It has two commands: `create` and `apply`.
 
