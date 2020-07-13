@@ -36,6 +36,7 @@ import Crypto.Hash.SHA1
 import Database.PostgreSQL.Simple.Types
 import Data.Time.Clock.POSIX
 import qualified Data.ByteString.Char8 as BSC
+import Data.Function
 
 type Version = UTCTime
 
@@ -233,7 +234,7 @@ apply migrations = do
 applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB ()
 applyMigrations groupRow migrations = do
   createApplication groupRow
-  forM_ migrations $ \migration -> do
+  forM_ (NonEmpty.sortBy (compare `on` inputVersion) migrations) $ \migration -> do
     inputAction migration
     insertMigration (arId groupRow) migration
 

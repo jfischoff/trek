@@ -17,6 +17,7 @@ import Data.List.NonEmpty (NonEmpty(..), fromList)
 import Control.Concurrent
 import Control.Concurrent.Async
 import Data.IORef
+import Data.Function
 
 type WorldState = String
 
@@ -81,13 +82,13 @@ createQuux :: DB ()
 createQuux = void $ T.execute_ [sql| CREATE SCHEMA IF NOT EXISTS test; CREATE TABLE test.quux (id SERIAL PRIMARY KEY)|]
 
 foo :: InputMigration
-foo = InputMigration createFoo [utcIso8601| 2048-12-01 |] (Psql.Binary "extra")
+foo = InputMigration createFoo [utcIso8601| 2022-12-01 |] (Psql.Binary "extra")
 
 bar :: InputMigration
 bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] (Psql.Binary "migration-2025-12-01")
 
 quux :: InputMigration
-quux = InputMigration createQuux [utcIso8601| 2025-12-02 |] (Psql.Binary "migration-2025-01-01")
+quux = InputMigration createQuux [utcIso8601| 2025-12-02 |] (Psql.Binary "migration-2025-12-02")
 
 toOutputMigration :: InputMigration -> OutputMigration
 toOutputMigration InputMigration {..} = OutputMigration
@@ -99,7 +100,7 @@ toOutput :: InputGroup -> DB OutputGroup
 toOutput InputGroup {..} = pure OutputGroup
   { ogId = GroupId $ Psql.Binary $ makeGroupHash inputGroupCreateAd $ NonEmpty.toList inputGroupMigrations
   , ogCreatedAt = inputGroupCreateAd
-  , ogMigrations = fmap toOutputMigration inputGroupMigrations
+  , ogMigrations = fmap toOutputMigration $ NonEmpty.sortBy (compare `on` inputHash) inputGroupMigrations
   }
 
 rollback :: DB a -> DB a
