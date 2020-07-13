@@ -63,7 +63,7 @@ library
     , filepath
     , aeson
     , cryptohash-sha256
-    , postgresql-simple
+    , hasql
     , semigroups
     , directory
     , pg-transact
@@ -111,7 +111,7 @@ test-suite test
     , async
     , time-qq
     , trek-db
-    , postgresql-simple
+    , hasql
     , postgres-options
   default-language: Haskell2010
   build-tool-depends: hspec-discover:hspec-discover

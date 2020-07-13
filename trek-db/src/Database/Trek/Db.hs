@@ -19,12 +19,7 @@ import Database.PostgreSQL.Transact
 import Data.List.NonEmpty (NonEmpty, nonEmpty)
 import qualified Data.List.NonEmpty as NonEmpty
 import Data.ByteString (ByteString)
-import qualified Database.PostgreSQL.Simple as Psql
-import qualified Database.PostgreSQL.Simple.FromField as Psql
-import qualified Database.PostgreSQL.Simple.ToField as Psql
-import qualified Database.PostgreSQL.Simple.ToRow as Psql
-import qualified Database.PostgreSQL.Simple.FromRow as Psql
-import Database.PostgreSQL.Simple.SqlQQ
+
 import Control.Monad (void)
 import GHC.Generics
 import qualified Data.Set as Set
@@ -33,7 +28,6 @@ import Data.Foldable
 import Control.Monad.IO.Class
 import Data.Time
 import Crypto.Hash.SHA1
-import Database.PostgreSQL.Simple.Types
 import Data.Time.Clock.POSIX
 import qualified Data.ByteString.Char8 as BSC
 import Data.Function

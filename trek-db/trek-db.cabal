@@ -51,7 +51,7 @@ library
     , bytestring
     , containers
     , pg-transact >= 0.2.1.0
-    , postgresql-simple
+    , hasql
     , semigroups
     , text
     , time
@@ -87,7 +87,7 @@ test-suite test
     , resource-pool
     , hspec-expectations-lifted
     , async
-    , postgresql-simple
+    , hasql
     , pg-transact
   default-language: Haskell2010
   build-tool-depends: hspec-discover:hspec-discover
