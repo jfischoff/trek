@@ -8,10 +8,10 @@ cabal-version: 2.0
 
 name:           trek-db
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
-homepage:       https://github.com/githubuser/trek#readme
-bug-reports:    https://github.com/githubuser/trek/issues
-author:         Author name here
+description:    Please see the README on GitHub at <https://github.com/jfischoff/trek#readme>
+homepage:       https://github.com/jfischoff/trek#readme
+bug-reports:    https://github.com/jfischoff/trek/issues
+author:         Jonathan Fischoff
 maintainer:     jonathangfischoff at gmail.com
 copyright:      2019 Jonathan Fischoff
 license:        BSD3
@@ -23,7 +23,7 @@ synopsis: A PostgreSQL Database Migrator
 
 source-repository head
   type: git
-  location: https://github.com/githubuser/trek
+  location: https://github.com/jfischoff/trek
 
 library
   exposed-modules:

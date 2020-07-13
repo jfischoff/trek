@@ -8,9 +8,9 @@ cabal-version: 2.0
 
 name:           trek
 version:        0.1.0.0
-description:    Please see the README on GitHub at <https://github.com/githubuser/trek#readme>
-homepage:       https://github.com/githubuser/trek#readme
-bug-reports:    https://github.com/githubuser/trek/issues
+description:    Please see the README on GitHub at <https://github.com/jfischoff/trek#readme>
+homepage:       https://github.com/jfischoff/trek#readme
+bug-reports:    https://github.com/jfischoff/trek/issues
 author:         Author name here
 maintainer:     jonathangfischoff at gmail.com
 copyright:      2019 Jonathan Fischoff
