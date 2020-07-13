@@ -35,6 +35,8 @@ import Data.Time
 import Crypto.Hash.SHA1
 import Database.PostgreSQL.Simple.Types
 import Data.Time.Clock.POSIX
+import qualified Data.ByteString.Char8 as BSC
+import Data.Function
 
 type Version = UTCTime
 
@@ -202,12 +204,13 @@ listApplications = do
       FROM meta.applications
       ORDER BY rowOrder ASC |]
 
-makeGroupHash :: [InputMigration] -> Hash
-makeGroupHash migrations = hash $ mconcat ("application|" : map (fromBinary . inputHash) migrations)
+makeGroupHash :: UTCTime -> [InputMigration] -> Hash
+makeGroupHash createdAt migrations = hash $
+  mconcat ((BSC.pack $ show createdAt) : map (fromBinary . inputHash) migrations)
 
 inputGroupToGroupRow :: InputGroup -> GroupRow
 inputGroupToGroupRow InputGroup {..} =
-  let arId         = GroupId $ Binary $ makeGroupHash $ NonEmpty.toList inputGroupMigrations
+  let arId         = GroupId $ Binary $ makeGroupHash inputGroupCreateAd $ NonEmpty.toList inputGroupMigrations
       arCreatedAt  = inputGroupCreateAd
 
   in GroupRow {..}
@@ -231,7 +234,7 @@ apply migrations = do
 applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB ()
 applyMigrations groupRow migrations = do
   createApplication groupRow
-  forM_ migrations $ \migration -> do
+  forM_ (NonEmpty.sortBy (compare `on` inputVersion) migrations) $ \migration -> do
     inputAction migration
     insertMigration (arId groupRow) migration
 
