@@ -35,15 +35,15 @@ data Errors = CouldNotParseMigration FilePath
 
 instance Exception Errors
 
-eval :: Command -> IO ()
-eval cmd = do
+eval :: [Db.InputMigration] -> Command -> IO ()
+eval extraMigrations cmd = do
   let e = case cmd of
         Create name -> putStrLn =<< create name
         Apply partialOptions filePath -> do
           let options = either (const $ error "Partial db options. Not possible") id
                       $ Partial.completeOptions partialOptions
 
-          traverse_ (BSL.putStrLn . encodePretty) =<< apply options filePath
+          traverse_ (BSL.putStrLn . encodePretty) =<< apply extraMigrations options filePath
 
   let action = try e >>= \case
         Left err -> case err of
@@ -122,9 +122,9 @@ binaryToJSON (Binary x) = toJSON $ BSC.unpack $ Base64.encode x
 groupIdToJSON :: Db.GroupId -> Value
 groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
-apply :: P.Options -> FilePath -> IO (Maybe OutputGroup)
-apply options dirPath = do
+apply :: [Db.InputMigration] -> P.Options -> FilePath -> IO (Maybe OutputGroup)
+apply extraMigrations options dirPath = do
   xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
     =<< listDirectory dirPath
-  withOptions options $ \conn -> fmap (fmap OutputGroup . join) $ forM (nonEmpty xs) $ \theNonEmpty ->
+  withOptions options $ \conn -> fmap (fmap OutputGroup . join) $ forM (nonEmpty $ extraMigrations ++ xs) $ \theNonEmpty ->
     T.runDBT (Db.apply =<< Db.inputGroup theNonEmpty) ReadCommitted conn
