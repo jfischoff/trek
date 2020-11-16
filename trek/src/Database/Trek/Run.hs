@@ -2,6 +2,10 @@ module Database.Trek.Run where
 import qualified Database.Trek.Db as Db
 import qualified Database.PostgreSQL.Simple.Options as P
 import qualified Database.PostgreSQL.Simple.PartialOptions as Partial
+import Data.Bool (bool)
+import Data.Function (on)
+import Data.Functor ((<&>))
+import Data.List (groupBy, sortBy)
 import Data.Time.Format
 import Data.Time
 import System.IO
@@ -13,7 +17,6 @@ import qualified Data.ByteString.Char8 as BSC
 import Crypto.Hash.SHA256
 import Control.Exception
 import Data.Typeable
-import Database.PostgreSQL.Simple
 import Data.Aeson
 import System.Exit
 import System.IO.Error
@@ -22,7 +25,7 @@ import Data.List.NonEmpty (nonEmpty)
 import System.Directory
 import Data.Foldable
 import qualified Database.PostgreSQL.Transact as T
-import Database.PostgreSQL.Simple.Transaction
+import qualified Database.PostgreSQL.Simple.Transaction as Psql
 import qualified Data.ByteString.Base64 as Base64
 import qualified Database.PostgreSQL.Simple as Psql
 import Data.List.Split
@@ -35,7 +38,7 @@ data Errors = CouldNotParseMigration FilePath
 
 instance Exception Errors
 
-eval :: [Db.InputMigration] -> Command -> IO ()
+eval :: [(Bool, Db.InputMigration)] -> Command -> IO ()
 eval extraMigrations cmd = do
   let e = case cmd of
         Create name -> putStrLn =<< create name
@@ -75,7 +78,7 @@ create name = do
 
   pure outputFilePath
 
-withOptions :: P.Options -> (Connection -> IO a) -> IO a
+withOptions :: P.Options -> (Psql.Connection -> IO a) -> IO a
 withOptions options f =
   bracket (Psql.connectPostgreSQL $ P.toConnectionString options) Psql.close f
 
@@ -84,18 +87,29 @@ parseVersion filePath = do
   date <- listToMaybe $ splitOn "_" $ takeFileName filePath
   parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date
 
-computeHash :: String -> Binary Db.Hash
-computeHash = Binary . hash . BSC.pack
+parseUseTransaction :: FilePath -> Bool
+parseUseTransaction filePath =
+  let
+    safeLast = \case
+      (x : []) -> Just x
+      (_ : xs) -> safeLast xs
+      [] -> Nothing
+  in
+    maybe True (/= "NO-TRANSACTION") $ safeLast $ splitOn "_" $ takeBaseName filePath
 
-makeInputMigration :: FilePath -> IO Db.InputMigration
+computeHash :: String -> Psql.Binary Db.Hash
+computeHash = Psql.Binary . hash . BSC.pack
+
+makeInputMigration :: FilePath -> IO (Bool, Db.InputMigration)
 makeInputMigration filePath = do
   inputVersion <- maybe (throwIO $ CouldNotParseMigration filePath) pure $ parseVersion filePath
+  let useTransaction = parseUseTransaction filePath
 
   theQuery <- readFile filePath
   let inputAction  = void $ T.execute_ $ fromString theQuery
       inputHash    = computeHash theQuery
 
-  pure Db.InputMigration {..}
+  pure (useTransaction, Db.InputMigration {..})
 
 newtype OutputMigration = OutputMigration Db.OutputMigration
 
@@ -116,15 +130,25 @@ instance ToJSON OutputGroup where
       , "migrations" .= fmap OutputMigration ogMigrations
       ]
 
-binaryToJSON :: Binary BSC.ByteString -> Value
-binaryToJSON (Binary x) = toJSON $ BSC.unpack $ Base64.encode x
+binaryToJSON :: Psql.Binary BSC.ByteString -> Value
+binaryToJSON (Psql.Binary x) = toJSON $ BSC.unpack $ Base64.encode x
 
 groupIdToJSON :: Db.GroupId -> Value
 groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
-apply :: [Db.InputMigration] -> P.Options -> FilePath -> IO (Maybe OutputGroup)
+apply :: [(Bool, Db.InputMigration)] -> P.Options -> FilePath -> IO [OutputGroup]
 apply extraMigrations options dirPath = do
   xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
     =<< listDirectory dirPath
-  withOptions options $ \conn -> fmap (fmap OutputGroup . join) $ forM (nonEmpty $ extraMigrations ++ xs) $ \theNonEmpty ->
-    T.runDBT (Db.apply =<< Db.inputGroup theNonEmpty) ReadCommitted conn
+  let transactionGroups = groupBy' $ sortBy (compare `on` (Db.inputVersion . snd)) $ extraMigrations <> xs
+  withOptions options $ \conn -> fmap (fmap OutputGroup)
+    $ fmap catMaybes
+    $ forM (mapMaybe (sequence . fmap nonEmpty) transactionGroups) $ \(useTransaction, theNonEmpty) -> do
+        let
+          withTransaction action = T.runDBT action Psql.ReadCommitted conn
+          withoutTransaction action = T.runDBTNoTransaction action conn
+        bool withoutTransaction withTransaction useTransaction
+          $ Db.apply =<< Db.inputGroup theNonEmpty
+
+groupBy' :: [(Bool, a)] -> [(Bool, [a])]
+groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys -> (all fst ys, snd <$> ys)

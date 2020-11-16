@@ -1,6 +1,7 @@
 module Tests.Database.Trek.RunSpec where
 import Database.Trek.Run
 import Test.Hspec
+import Data.Bool (bool)
 import Data.Maybe
 import Data.List.Split
 import Data.Time.Format
@@ -20,6 +21,7 @@ import qualified Database.Trek.Db as Db
 import Database.PostgreSQL.Simple.Types
 import Data.Time.QQ
 import qualified Database.PostgreSQL.Simple as Psql
+import qualified Database.PostgreSQL.Simple.SqlQQ as Psql
 import Paths_trek_app (getDataDir)
 import qualified Database.PostgreSQL.Transact as T
 import Control.Monad (void)
@@ -89,17 +91,22 @@ spec = do
           actualName `shouldBe` "migration.sql"
           isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date :: Maybe UTCTime) `shouldBe` True
           doesFileExist output `shouldReturn` True
+    it "parses 'no transaction' indications" $ do
+      parseUseTransaction "migrations/2020-11-16T12:00:00.0000_do-things_NO-TRANSACTION.sql"
+        `shouldBe` False
+      parseUseTransaction "migrations/2020-11-16T12:00:00.0000_do-things.sql"
+        `shouldBe` True
 
   aroundAll withSetup $ describe "Database.Trek.Run.apply" $ do
     it "empty directory does nothing" $ \options -> withSystemTempDirectory "trek-test" $ \tmp -> do
-      apply [] options tmp `shouldReturn` Nothing
+      apply [] options tmp `shouldReturn` []
       -- Doing it twice should be the same
-      apply [] options tmp `shouldReturn` Nothing
+      apply [] options tmp `shouldReturn` []
 
     it "standard migrations succeed" $ \options -> do
       dataDir <- fmap (</> "data") getDataDir
 
-      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply [] options dataDir
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- apply [] options dataDir
       let fooM :| [barM, quuxM] = ogMigrations
       fooM  `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
@@ -120,7 +127,7 @@ spec = do
       withOptions options checkTables `shouldReturn` ["bar", "foo", "quux"]
 
     it "reapplying does nothing" $ \options -> do
-      (apply [] options . (</> "data") =<< getDataDir) `shouldReturn` Nothing
+      (apply [] options . (</> "data") =<< getDataDir) `shouldReturn` []
 
     it "reapplying with an extra migration applies the migration" $ \options -> do
       let extraMigration = Db.InputMigration
@@ -128,10 +135,81 @@ spec = do
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
             , Db.inputHash = Binary "hash"
             }
-      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply [extraMigration] options . (</> "data") =<< getDataDir
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- apply [(True, extraMigration)] options . (</> "data") =<< getDataDir
       ogMigrations `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
         , Db.omHash = Binary "hash"
         } :| []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
+    it "reapplying a list of mixed transaction migrations" $ \options -> do
+      let
+        transactionQuery = do
+          tid :: Only Int <- head <$> T.query_ [Psql.sql| select txid_current(); |]
+          void $ T.execute
+            [Psql.sql| insert into test.in_transaction
+              (trans)
+              (select txid_status(?));
+            |]
+            tid
+        extraMigrations =
+            [ ( True
+              , Db.InputMigration {
+                  Db.inputAction = void $ T.execute_ "create table test.in_transaction (id serial primary key, trans text);"
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:00.0000 |]
+                , Db.inputHash = Binary "hash_1"
+                }
+              )
+            , ( True
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:10.0000 |]
+                , Db.inputHash = Binary "hash_2"
+                }
+              )
+            , ( True
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:20.0000 |]
+                , Db.inputHash = Binary "hash_3"
+                }
+              )
+            , ( False
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:30.0000 |]
+                , Db.inputHash = Binary "hash_4"
+                }
+              )
+            , ( False
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:40.0000 |]
+                , Db.inputHash = Binary "hash_5"
+                }
+              )
+            , ( True
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:50.0000 |]
+                , Db.inputHash = Binary "hash_6"
+                }
+              )
+            , ( True
+              , Db.InputMigration {
+                  Db.inputAction = transactionQuery
+                , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:60.0000 |]
+                , Db.inputHash = Binary "hash_7"
+                }
+              )
+            ]
+        checkTransactions conn = fmap Psql.fromOnly <$> Psql.query_ conn
+          [Psql.sql|
+            SELECT trans
+            from test.in_transaction
+            order by id;
+          |]
+
+      void $ apply extraMigrations options . (</> "data") =<< getDataDir
+      withOptions options checkTransactions `shouldReturn`
+        (fmap (bool ("committed" :: String) "in progress") $ fmap fst $ drop 1 extraMigrations)
