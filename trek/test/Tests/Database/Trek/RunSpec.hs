@@ -21,6 +21,8 @@ import Database.PostgreSQL.Simple.Types
 import Data.Time.QQ
 import qualified Database.PostgreSQL.Simple as Psql
 import Paths_trek_app (getDataDir)
+import qualified Database.PostgreSQL.Transact as T
+import Control.Monad (void)
 
 aroundAll :: forall a. ((a -> IO ()) -> IO ()) -> SpecWith a -> Spec
 aroundAll withFunc specWith = do
@@ -67,6 +69,9 @@ withSetup f = do
     let combinedConfig = Temp.defaultConfig <> Temp.cacheConfig dbCache
     Temp.withConfig combinedConfig $ \db -> f $ Temp.toConnectionOptions db
 
+checkTables :: Psql.Connection -> IO [String]
+checkTables conn = fmap Psql.fromOnly <$> Psql.query_ conn
+  "SELECT CAST(table_name AS varchar) FROM information_schema.tables where table_schema = 'test' ORDER BY table_name"
 
 spec :: Spec
 spec = do
@@ -87,14 +92,14 @@ spec = do
 
   aroundAll withSetup $ describe "Database.Trek.Run.apply" $ do
     it "empty directory does nothing" $ \options -> withSystemTempDirectory "trek-test" $ \tmp -> do
-      apply options tmp `shouldReturn` Nothing
+      apply [] options tmp `shouldReturn` Nothing
       -- Doing it twice should be the same
-      apply options tmp `shouldReturn` Nothing
+      apply [] options tmp `shouldReturn` Nothing
 
     it "standard migrations succeed" $ \options -> do
       dataDir <- fmap (</> "data") getDataDir
 
-      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply options dataDir
+      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply [] options dataDir
       let fooM :| [barM, quuxM] = ogMigrations
       fooM  `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
@@ -112,11 +117,21 @@ spec = do
           { fromBinary = "\DLE*\221\")\SO\204\207\EMdmn\b\197\233a\212-NA\133;\255\167/\t\133\139\163\222Tz" }
           }
 
-      let action :: Psql.Connection -> IO [String]
-          action conn = fmap Psql.fromOnly <$> Psql.query_ conn
-            "SELECT CAST(table_name AS varchar) FROM information_schema.tables where table_schema = 'test' ORDER BY table_name"
-
-      withOptions options action `shouldReturn` ["bar", "foo", "quux"]
+      withOptions options checkTables `shouldReturn` ["bar", "foo", "quux"]
 
     it "reapplying does nothing" $ \options -> do
-      (apply options . (</> "data") =<< getDataDir) `shouldReturn` Nothing
+      (apply [] options . (</> "data") =<< getDataDir) `shouldReturn` Nothing
+
+    it "reapplying with an extra migration applies the migration" $ \options -> do
+      let extraMigration = Db.InputMigration
+            { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra();"
+            , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
+            , Db.inputHash = Binary "hash"
+            }
+      Just (OutputGroup (Db.OutputGroup {ogMigrations})) <- apply [extraMigration] options . (</> "data") =<< getDataDir
+      ogMigrations `shouldBe` Db.OutputMigration
+        { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
+        , Db.omHash = Binary "hash"
+        } :| []
+
+      withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
