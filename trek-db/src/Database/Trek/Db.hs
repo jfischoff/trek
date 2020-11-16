@@ -1,6 +1,7 @@
 module Database.Trek.Db
   ( -- * Life cycle management
-    apply
+    ApplyType (..)
+  , apply
   -- * Types
   , InputMigration (..)
   , OutputMigration (..)
@@ -215,8 +216,11 @@ inputGroupToGroupRow InputGroup {..} =
 
   in GroupRow {..}
 
-apply :: InputGroup -> DB (Maybe OutputGroup)
-apply migrations = do
+data ApplyType = RunMigrations | SetMigrate
+  deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+
+apply :: ApplyType -> InputGroup -> DB (Maybe OutputGroup)
+apply applyType migrations = do
   _ <- setup
   appliedMigrations <- listApplications
 
@@ -227,16 +231,30 @@ apply migrations = do
   forM (nonEmpty unappliedMigrations) $ \ms -> do
     let groupRow = inputGroupToGroupRow $
           migrations { inputGroupMigrations = ms }
-    applyMigrations groupRow ms
+        applier = case applyType of
+          RunMigrations -> applyMigrations
+          SetMigrate    -> setMigrate
 
+    applier groupRow ms
     getOutputGroup $ arId groupRow
 
 applyMigrations :: GroupRow -> NonEmpty (InputMigration) -> DB ()
 applyMigrations groupRow migrations = do
   createApplication groupRow
-  forM_ (NonEmpty.sortBy (compare `on` inputVersion) migrations) $ \migration -> do
+  applyMigrationsWith migrations $ \migration -> do
     inputAction migration
     insertMigration (arId groupRow) migration
+
+setMigrate :: GroupRow -> NonEmpty (InputMigration) -> DB ()
+setMigrate groupRow migrations = do
+  createApplication groupRow
+  applyMigrationsWith migrations $ insertMigration (arId groupRow)
+
+applyMigrationsWith :: NonEmpty (InputMigration)
+                    -> (InputMigration -> DB ())
+                    -> DB ()
+applyMigrationsWith migrations f =
+  forM_ (NonEmpty.sortBy (compare `on` inputVersion) migrations) f
 
 insertMigration :: GroupId -> InputMigration -> DB ()
 insertMigration groupId migration = void $ execute

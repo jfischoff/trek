@@ -127,25 +127,25 @@ spec = do
     rollbackIt "input migration on clean setup give output group" $ do
       initial <- inputGroup $ pure foo
       expected <- toOutput initial
-      apply initial `shouldReturn` Just expected
+      apply RunMigrations initial `shouldReturn` Just expected
 
     it "for s ⊆ x. apply x >> apply s = Nothing" $ withPool $ rollback $ do
       twoMigrations <- inputGroup (foo NonEmpty.:| [bar])
       expectedTwoOutput <- toOutput twoMigrations
-      apply twoMigrations `shouldReturn` Just expectedTwoOutput
+      apply RunMigrations twoMigrations `shouldReturn` Just expectedTwoOutput
 
-      rollback $ (apply =<< inputGroup (pure foo)) `shouldReturn` Nothing
-      rollback $ (apply =<< inputGroup (pure bar)) `shouldReturn` Nothing
+      rollback $ (apply RunMigrations =<< inputGroup (pure foo)) `shouldReturn` Nothing
+      rollback $ (apply RunMigrations =<< inputGroup (pure bar)) `shouldReturn` Nothing
 
     rollbackIt "for s ⊆ x and y st. z = y / x and z ≠ ∅. apply s >> apply y = Just z" $ do
       twoMigrations <- inputGroup (foo NonEmpty.:| [bar])
       expectedTwoOutput <- toOutput twoMigrations
-      apply twoMigrations `shouldReturn` Just expectedTwoOutput
+      apply RunMigrations twoMigrations `shouldReturn` Just expectedTwoOutput
 
       someAlreadyApplied <- inputGroup (foo NonEmpty.:| [quux])
       onlyQuux <- toOutput =<< inputGroup (quux NonEmpty.:| [])
 
-      apply someAlreadyApplied `shouldReturn` Just onlyQuux
+      apply RunMigrations someAlreadyApplied `shouldReturn` Just onlyQuux
 
         -- TODO make exception safe
     it "actions are preserved during migration : all partitions apply the same effects" $ \pool -> do
@@ -159,6 +159,6 @@ spec = do
         _ <- flip withPool pool clear
 
         actual <- flip withPool pool
-          (mapM_ (apply <=< inputGroup) parts >> worldState)
+          (mapM_ (apply RunMigrations <=< inputGroup) parts >> worldState)
 
         actual `shouldBe` expectedWorldState

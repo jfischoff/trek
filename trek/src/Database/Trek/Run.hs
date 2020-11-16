@@ -31,6 +31,7 @@ import qualified Database.PostgreSQL.Simple as Psql
 import Data.List.Split
 import Data.Maybe
 import Data.Aeson.Encode.Pretty
+import Data.Monoid
 
 data Errors = CouldNotParseMigration FilePath
             | DirectoryDoesNotExist FilePath
@@ -47,6 +48,11 @@ eval extraMigrations cmd = do
                       $ Partial.completeOptions partialOptions
 
           traverse_ (BSL.putStrLn . encodePretty) =<< apply extraMigrations options filePath
+        SetMigrated partialOptions start end filePath -> do
+          let options = either (const $ error "Partial db options. Not possible") id
+                      $ Partial.completeOptions partialOptions
+
+          traverse_ (BSL.putStrLn . encodePretty) =<< setMigrated extraMigrations options (getLast start) (getLast end) filePath
 
   let action = try e >>= \case
         Left err -> case err of
@@ -136,11 +142,28 @@ binaryToJSON (Psql.Binary x) = toJSON $ BSC.unpack $ Base64.encode x
 groupIdToJSON :: Db.GroupId -> Value
 groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
+filterRange :: Maybe UTCTime -> Maybe UTCTime -> [(Bool, Db.InputMigration)] -> [(Bool, Db.InputMigration)]
+filterRange start end migrations =
+  let startCondition = maybe (const True) (<=) start
+      endCondition   = maybe (const True) (>=) end
+  in filter (\(_, x) -> startCondition (Db.inputVersion x) && endCondition (Db.inputVersion x)) migrations
+
+setMigrated :: [(Bool, Db.InputMigration)] -> P.Options -> Maybe UTCTime -> Maybe UTCTime -> FilePath -> IO [OutputGroup]
+setMigrated extraMigrations options start end dirPath = do
+  xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
+    =<< listDirectory dirPath
+
+  applyWith Db.SetMigrate (filterRange start end $ extraMigrations <> xs) options
+
 apply :: [(Bool, Db.InputMigration)] -> P.Options -> FilePath -> IO [OutputGroup]
 apply extraMigrations options dirPath = do
   xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
     =<< listDirectory dirPath
-  let transactionGroups = groupBy' $ sortBy (compare `on` (Db.inputVersion . snd)) $ extraMigrations <> xs
+  applyWith Db.RunMigrations (extraMigrations <> xs) options
+
+applyWith :: Db.ApplyType -> [(Bool, Db.InputMigration)] -> P.Options -> IO [OutputGroup]
+applyWith applyType allMigrations options = do
+  let transactionGroups = groupBy' $ sortBy (compare `on` (Db.inputVersion . snd)) allMigrations
   withOptions options $ \conn -> fmap (fmap OutputGroup)
     $ fmap catMaybes
     $ forM (mapMaybe (sequence . fmap nonEmpty) transactionGroups) $ \(useTransaction, theNonEmpty) -> do
@@ -148,7 +171,7 @@ apply extraMigrations options dirPath = do
           withTransaction action = T.runDBT action Psql.ReadCommitted conn
           withoutTransaction action = T.runDBTNoTransaction action conn
         bool withoutTransaction withTransaction useTransaction
-          $ Db.apply =<< Db.inputGroup theNonEmpty
+          $ Db.apply applyType =<< Db.inputGroup theNonEmpty
 
 groupBy' :: [(Bool, a)] -> [(Bool, [a])]
 groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys -> (all fst ys, snd <$> ys)
