@@ -142,6 +142,46 @@ spec = do
         } :| []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
+
+    it "setMigrate adds the migrations but doesn't run it " $ \options -> do
+      let extraMigration = Db.InputMigration
+            { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
+            , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
+            , Db.inputHash = Binary "hash1"
+            }
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- setMigrated [(True, extraMigration)] options Nothing Nothing . (</> "data")
+        =<< getDataDir
+      ogMigrations `shouldBe` Db.OutputMigration
+        { Db.omVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
+        , Db.omHash = Binary "hash1"
+        } :| []
+
+      withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
+
+    it "setMigrate doesn't add the migration if it is out of bounds by start" $ \options -> do
+      let extraMigration = Db.InputMigration
+            { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
+            , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
+            , Db.inputHash = Binary "hash1"
+            }
+
+      (setMigrated [(True, extraMigration)] options (pure [utcIso8601ms| 2020-07-12T06:27:34.00000 |]) Nothing . (</> "data")
+          =<< getDataDir) `shouldReturn` []
+
+      withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
+
+    it "setMigrate doesn't add the migration if it is out of bounds by end" $ \options -> do
+      let extraMigration = Db.InputMigration
+            { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
+            , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
+            , Db.inputHash = Binary "hash1"
+            }
+
+      (setMigrated [(True, extraMigration)] options Nothing (pure [utcIso8601ms| 2020-07-12T06:27:32.00000 |]) . (</> "data")
+          =<< getDataDir) `shouldReturn` []
+
+      withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
+
     it "reapplying a list of mixed transaction migrations" $ \options -> do
       let
         transactionQuery = do
