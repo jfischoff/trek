@@ -14,6 +14,7 @@ module Database.Trek.Db
   , inputGroup
   , Time
   , makeGroupHash
+  , listApplications
   )
   where
 import Database.PostgreSQL.Transact

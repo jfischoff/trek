@@ -53,6 +53,10 @@ eval extraMigrations cmd = do
                       $ Partial.completeOptions partialOptions
 
           traverse_ (BSL.putStrLn . encodePretty) =<< setMigrated extraMigrations options (getLast start) (getLast end) filePath
+        List partialOptions -> do
+          let options = either (const $ error "Partial db options. Not possible") id
+                      $ Partial.completeOptions partialOptions
+          traverse_ (BSL.putStrLn . encodePretty) =<< list options
 
   let action = try e >>= \case
         Left err -> case err of
@@ -184,3 +188,6 @@ groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys ->
   ( fromMaybe InTransaction (listToMaybe $ fmap fst ys)
   , snd <$> ys
   )
+
+list :: P.Options -> IO [OutputGroup]
+list options = fmap (map OutputGroup) $ withOptions options $ \conn -> T.runDBT Db.listApplications Psql.ReadCommitted conn

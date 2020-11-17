@@ -9,6 +9,7 @@ data Command
   = Apply PartialOptions FilePath
   | Create String InTransaction
   | SetMigrated PartialOptions (Last UTCTime) (Last UTCTime) FilePath
+  | List PartialOptions
   deriving (Show, Eq, Generic)
 
 data InTransaction
@@ -45,6 +46,8 @@ instance ParseRecord Command where
               )
           <*> B.strArgument (B.metavar "FILEPATH")
 
+        listParser = List <$> parseRecord
+
     B.subparser
      (  B.command "apply"
           (B.info applyParser (B.progDesc "Apply migrations"))
@@ -52,4 +55,5 @@ instance ParseRecord Command where
           (B.info createParser (B.progDesc "Create migrations"))
      <> B.command "set-migrated"
           (B.info setMigratedParser (B.progDesc "Set migrations as applied in the data without running them"))
+     <> B.command "list" (B.info listParser $ B.progDesc "List applied migrations")
      )

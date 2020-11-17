@@ -107,6 +107,36 @@ On success `set-migrated` returns the migration group of the migrations it added
 #### Errors
 - if any `*.sql` files cannot be parsed in the `NAME-VERSION.sql` format `apply` will return exit code `2`.
 
+## `trek list`
+
+### Example
+```bash
+trek list
+[ {
+    "migrations": [
+        {
+            "hash": "TBCJw6kwo28hSb39YPrLk9fI4IlToG17s+PwG8JQLUk=",
+            "version": "2020-07-12T06:21:21Z"
+        },
+        {
+            "hash": "A+Gb17iQkxBuDsOvNKfQfi30U5I510vfaa0E0UEnWjc=",
+            "version": "2020-07-12T06:21:27Z"
+        },
+        {
+            "hash": "ECrdIikOzM8ZZG1uCMXpYdQtTkGFO/+nLwmFi6PeVHo=",
+            "version": "2020-07-12T06:21:32Z"
+        }
+    ],
+    "created_at": "2020-07-12T18:29:04.7395Z",
+    "id": "KgnJYCdJlarNU25q8SZDCPIfXxs="
+  }
+]
+
+```
+
+#### Successful Behavior
+`list` will list all the applied migration groups.
+
 ## Environment Variables
 
 You can configure `trek` by setting the standard postgres connection [environment parameters](https://www.postgresql.org/docs/current/libpq-envars.html) or via command line arguments. See `apply --help` for details.
