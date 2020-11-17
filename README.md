@@ -7,8 +7,17 @@
 ### Example
 ```bash
 $ trek create path/migration.sql
-path/2020-07-09T06-21-12-migration.sql
+path/2020-07-09T06-21-12_migration.sql
 ```
+
+If a migration needs to run outside of a transaction, then the
+`--no-transaction` flag may be passed:
+
+```bash
+$ trek create --no-transaction path/migration.sql
+path/2020-07-09T06-21-12_migration_NO-TRANSACTION.sql
+```
+
 ### Description
 
 #### Successful Behavior
@@ -49,6 +58,12 @@ $ trek apply DIRPATH
 #### Successful Behavior
 
 `apply` executes the the non-applied migrations (`*.sql` files) in `DIRPATH` together in a single `READ COMMITTED` transaction.
+
+If the file name contains `_NO-TRANSACTION` as the last portion of the name
+(before `*.sql`), then it will be run without a transaction. With multiple
+files, they will be split into contiguous, ordered groups, so that adjacent
+files will be run in the same transaction, and `NO_TRANSACTION` files will each
+be run separately.
 
 `apply` returns a JSON list of migrations entries as seen in the example above.
 

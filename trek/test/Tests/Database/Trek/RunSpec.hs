@@ -1,7 +1,7 @@
 module Tests.Database.Trek.RunSpec where
+import Database.Trek.Parser
 import Database.Trek.Run
 import Test.Hspec
-import Data.Bool (bool)
 import Data.Maybe
 import Data.List.Split
 import Data.Time.Format
@@ -84,18 +84,32 @@ spec = do
         bracket_ (setCurrentDirectory tmp) (setCurrentDirectory old) $ do
           createDirectory "path"
           let name = "path/migration.sql"
-          output <- create name
+          output <- create name InTransaction
           let (dir, theFileName) = splitFileName output
               [date, actualName] = splitOn "_" theFileName
           dir `shouldBe` "path/"
           actualName `shouldBe` "migration.sql"
           isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date :: Maybe UTCTime) `shouldBe` True
           doesFileExist output `shouldReturn` True
+    it "creates a file with NO-TRANSACTION" $ do
+      withSystemTempDirectory "trek-test" $ \tmp -> do
+        old <- getCurrentDirectory
+        bracket_ (setCurrentDirectory tmp) (setCurrentDirectory old) $ do
+          createDirectory "path"
+          let name = "path/migration.sql"
+          output <- create name NoTransaction
+          let (dir, theFileName) = splitFileName output
+              [date, actualName, noTransaction] = splitOn "_" theFileName
+          dir `shouldBe` "path/"
+          actualName `shouldBe` "migration"
+          noTransaction `shouldBe` "NO-TRANSACTION.sql"
+          isJust (parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date :: Maybe UTCTime) `shouldBe` True
+          doesFileExist output `shouldReturn` True
     it "parses 'no transaction' indications" $ do
       parseUseTransaction "migrations/2020-11-16T12:00:00.0000_do-things_NO-TRANSACTION.sql"
-        `shouldBe` False
+        `shouldBe` NoTransaction
       parseUseTransaction "migrations/2020-11-16T12:00:00.0000_do-things.sql"
-        `shouldBe` True
+        `shouldBe` InTransaction
 
   aroundAll withSetup $ describe "Database.Trek.Run.apply" $ do
     it "empty directory does nothing" $ \options -> withSystemTempDirectory "trek-test" $ \tmp -> do
@@ -135,7 +149,7 @@ spec = do
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
             , Db.inputHash = Binary "hash"
             }
-      [OutputGroup (Db.OutputGroup {ogMigrations})] <- apply [(True, extraMigration)] options . (</> "data") =<< getDataDir
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- apply [(InTransaction, extraMigration)] options . (</> "data") =<< getDataDir
       ogMigrations `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
         , Db.omHash = Binary "hash"
@@ -149,7 +163,7 @@ spec = do
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
             , Db.inputHash = Binary "hash1"
             }
-      [OutputGroup (Db.OutputGroup {ogMigrations})] <- setMigrated [(True, extraMigration)] options Nothing Nothing . (</> "data")
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- setMigrated [(InTransaction, extraMigration)] options Nothing Nothing . (</> "data")
         =<< getDataDir
       ogMigrations `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
@@ -165,7 +179,7 @@ spec = do
             , Db.inputHash = Binary "hash1"
             }
 
-      (setMigrated [(True, extraMigration)] options (pure [utcIso8601ms| 2020-07-12T06:27:34.00000 |]) Nothing . (</> "data")
+      (setMigrated [(InTransaction, extraMigration)] options (pure [utcIso8601ms| 2020-07-12T06:27:34.00000 |]) Nothing . (</> "data")
           =<< getDataDir) `shouldReturn` []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
@@ -177,7 +191,7 @@ spec = do
             , Db.inputHash = Binary "hash1"
             }
 
-      (setMigrated [(True, extraMigration)] options Nothing (pure [utcIso8601ms| 2020-07-12T06:27:32.00000 |]) . (</> "data")
+      (setMigrated [(InTransaction, extraMigration)] options Nothing (pure [utcIso8601ms| 2020-07-12T06:27:32.00000 |]) . (</> "data")
           =<< getDataDir) `shouldReturn` []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
@@ -193,49 +207,49 @@ spec = do
             |]
             tid
         extraMigrations =
-            [ ( True
+            [ ( InTransaction
               , Db.InputMigration {
                   Db.inputAction = void $ T.execute_ "create table test.in_transaction (id serial primary key, trans text);"
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:00.0000 |]
                 , Db.inputHash = Binary "hash_1"
                 }
               )
-            , ( True
+            , ( InTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:10.0000 |]
                 , Db.inputHash = Binary "hash_2"
                 }
               )
-            , ( True
+            , ( InTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:20.0000 |]
                 , Db.inputHash = Binary "hash_3"
                 }
               )
-            , ( False
+            , ( NoTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:30.0000 |]
                 , Db.inputHash = Binary "hash_4"
                 }
               )
-            , ( False
+            , ( NoTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:40.0000 |]
                 , Db.inputHash = Binary "hash_5"
                 }
               )
-            , ( True
+            , ( InTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:50.0000 |]
                 , Db.inputHash = Binary "hash_6"
                 }
               )
-            , ( True
+            , ( InTransaction
               , Db.InputMigration {
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:60.0000 |]
@@ -252,4 +266,9 @@ spec = do
 
       void $ apply extraMigrations options . (</> "data") =<< getDataDir
       withOptions options checkTransactions `shouldReturn`
-        (fmap (bool ("committed" :: String) "in progress") $ fmap fst $ drop 1 extraMigrations)
+        (fmap ((\case
+                  NoTransaction -> "committed"
+                  InTransaction -> "in progress"
+              ) :: InTransaction -> String)
+              $ fmap fst $ drop 1 extraMigrations
+        )

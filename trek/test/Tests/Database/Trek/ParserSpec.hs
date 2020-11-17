@@ -11,7 +11,10 @@ spec :: Spec
 spec = describe "Database.Trek.Parser" $ do
   it "parses create" $
     withArgs ["create", "foo"] $
-     getRecord "trek" `shouldReturn` Create "foo"
+     getRecord "trek" `shouldReturn` Create "foo" InTransaction
+  it "parses create with no-transaction" $
+    withArgs ["create", "--no-transaction", "foo"] $
+      getRecord "trek" `shouldReturn` Create "foo" NoTransaction
   it "parses apply" $
     withArgs ["apply", "/path/to/migrations"] $
       getRecord "trek" `shouldReturn` Apply mempty "/path/to/migrations"

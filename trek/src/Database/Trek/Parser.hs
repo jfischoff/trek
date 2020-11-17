@@ -7,8 +7,13 @@ import Data.Time
 
 data Command
   = Apply PartialOptions FilePath
-  | Create String
+  | Create String InTransaction
   | SetMigrated PartialOptions (Last UTCTime) (Last UTCTime) FilePath
+  deriving (Show, Eq, Generic)
+
+data InTransaction
+  = InTransaction
+  | NoTransaction
   deriving (Show, Eq, Generic)
 
 utcReader :: B.ReadM UTCTime
@@ -23,6 +28,7 @@ instance ParseRecord Command where
 
         createParser
           = Create <$> B.strArgument (B.metavar "NAME")
+                   <*> B.flag InTransaction NoTransaction (B.long "no-transaction")
 
         setMigratedParser
            =  SetMigrated

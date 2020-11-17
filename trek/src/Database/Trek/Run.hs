@@ -39,10 +39,10 @@ data Errors = CouldNotParseMigration FilePath
 
 instance Exception Errors
 
-eval :: [(Bool, Db.InputMigration)] -> Command -> IO ()
+eval :: [(InTransaction, Db.InputMigration)] -> Command -> IO ()
 eval extraMigrations cmd = do
   let e = case cmd of
-        Create name -> putStrLn =<< create name
+        Create name inTransaction -> putStrLn =<< create name inTransaction
         Apply partialOptions filePath -> do
           let options = either (const $ error "Partial db options. Not possible") id
                       $ Partial.completeOptions partialOptions
@@ -70,11 +70,17 @@ eval extraMigrations cmd = do
       exitWith $ ExitFailure 1
     Right () -> pure ()
 
-create :: String -> IO String
-create name = do
+noTransactionSigil :: String
+noTransactionSigil = "NO-TRANSACTION"
+
+create :: String -> InTransaction -> IO String
+create name inTransaction = do
   now <- getCurrentTime
-  let (dir, theFileName) = splitFileName name
-      outputFile = formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S" now <> "_" <> theFileName
+  let (dir, theFileName) = takeBaseName <$> splitFileName name
+      transactionModifier = case inTransaction of
+                              InTransaction -> ""
+                              NoTransaction -> "_" <> noTransactionSigil
+      outputFile = formatTime defaultTimeLocale "%Y-%m-%dT%H-%M-%S" now <> "_" <> theFileName <> transactionModifier <> ".sql"
       outputFilePath = dir </> outputFile
   try (withFile outputFilePath WriteMode (const $ pure ())) >>= \case
     Left i
@@ -93,7 +99,7 @@ parseVersion filePath = do
   date <- listToMaybe $ splitOn "_" $ takeFileName filePath
   parseTimeM True defaultTimeLocale "%Y-%m-%dT%H-%M-%S" date
 
-parseUseTransaction :: FilePath -> Bool
+parseUseTransaction :: FilePath -> InTransaction
 parseUseTransaction filePath =
   let
     safeLast = \case
@@ -101,12 +107,12 @@ parseUseTransaction filePath =
       (_ : xs) -> safeLast xs
       [] -> Nothing
   in
-    maybe True (/= "NO-TRANSACTION") $ safeLast $ splitOn "_" $ takeBaseName filePath
+    maybe InTransaction (bool InTransaction NoTransaction . (== noTransactionSigil)) $ safeLast $ splitOn "_" $ takeBaseName filePath
 
 computeHash :: String -> Psql.Binary Db.Hash
 computeHash = Psql.Binary . hash . BSC.pack
 
-makeInputMigration :: FilePath -> IO (Bool, Db.InputMigration)
+makeInputMigration :: FilePath -> IO (InTransaction, Db.InputMigration)
 makeInputMigration filePath = do
   inputVersion <- maybe (throwIO $ CouldNotParseMigration filePath) pure $ parseVersion filePath
   let useTransaction = parseUseTransaction filePath
@@ -142,36 +148,39 @@ binaryToJSON (Psql.Binary x) = toJSON $ BSC.unpack $ Base64.encode x
 groupIdToJSON :: Db.GroupId -> Value
 groupIdToJSON (Db.GroupId x) = binaryToJSON x
 
-filterRange :: Maybe UTCTime -> Maybe UTCTime -> [(Bool, Db.InputMigration)] -> [(Bool, Db.InputMigration)]
+filterRange :: Maybe UTCTime -> Maybe UTCTime -> [(InTransaction, Db.InputMigration)] -> [(InTransaction, Db.InputMigration)]
 filterRange start end migrations =
   let startCondition = maybe (const True) (<=) start
       endCondition   = maybe (const True) (>=) end
   in filter (\(_, x) -> startCondition (Db.inputVersion x) && endCondition (Db.inputVersion x)) migrations
 
-setMigrated :: [(Bool, Db.InputMigration)] -> P.Options -> Maybe UTCTime -> Maybe UTCTime -> FilePath -> IO [OutputGroup]
+setMigrated :: [(InTransaction, Db.InputMigration)] -> P.Options -> Maybe UTCTime -> Maybe UTCTime -> FilePath -> IO [OutputGroup]
 setMigrated extraMigrations options start end dirPath = do
   xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
     =<< listDirectory dirPath
 
   applyWith Db.SetMigrate (filterRange start end $ extraMigrations <> xs) options
 
-apply :: [(Bool, Db.InputMigration)] -> P.Options -> FilePath -> IO [OutputGroup]
+apply :: [(InTransaction, Db.InputMigration)] -> P.Options -> FilePath -> IO [OutputGroup]
 apply extraMigrations options dirPath = do
   xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
     =<< listDirectory dirPath
   applyWith Db.RunMigrations (extraMigrations <> xs) options
 
-applyWith :: Db.ApplyType -> [(Bool, Db.InputMigration)] -> P.Options -> IO [OutputGroup]
+applyWith :: Db.ApplyType -> [(InTransaction, Db.InputMigration)] -> P.Options -> IO [OutputGroup]
 applyWith applyType allMigrations options = do
   let transactionGroups = groupBy' $ sortBy (compare `on` (Db.inputVersion . snd)) allMigrations
   withOptions options $ \conn -> fmap (fmap OutputGroup)
     $ fmap catMaybes
     $ forM (mapMaybe (sequence . fmap nonEmpty) transactionGroups) $ \(useTransaction, theNonEmpty) -> do
         let
-          withTransaction action = T.runDBT action Psql.ReadCommitted conn
-          withoutTransaction action = T.runDBTNoTransaction action conn
-        bool withoutTransaction withTransaction useTransaction
-          $ Db.apply applyType =<< Db.inputGroup theNonEmpty
+          runner action = case useTransaction of
+                     InTransaction -> T.runDBT action Psql.ReadCommitted conn
+                     NoTransaction -> T.runDBTNoTransaction action conn
+        runner $ Db.apply applyType =<< Db.inputGroup theNonEmpty
 
-groupBy' :: [(Bool, a)] -> [(Bool, [a])]
-groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys -> (all fst ys, snd <$> ys)
+groupBy' :: [(InTransaction, a)] -> [(InTransaction, [a])]
+groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys ->
+  ( fromMaybe InTransaction (listToMaybe $ fmap fst ys)
+  , snd <$> ys
+  )
