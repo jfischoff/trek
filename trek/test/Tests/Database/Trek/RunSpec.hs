@@ -117,6 +117,9 @@ spec = do
       -- Doing it twice should be the same
       apply [] options tmp `shouldReturn` []
 
+    it "list of nothing returns nothing" $ \options -> do
+      list options `shouldReturn` []
+
     it "standard migrations succeed" $ \options -> do
       dataDir <- fmap (</> "data") getDataDir
 
@@ -139,6 +142,25 @@ spec = do
           }
 
       withOptions options checkTables `shouldReturn` ["bar", "foo", "quux"]
+
+    it "list of standard migrations succeeds" $ \options -> do
+      [OutputGroup (Db.OutputGroup {ogMigrations})] <- list options
+      let fooM :| [barM, quuxM] = ogMigrations
+      fooM  `shouldBe` Db.OutputMigration
+        { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
+        , Db.omHash = Binary
+          { fromBinary = "L\DLE\137\195\169\&0\163o!I\189\253`\250\203\147\215\200\224\137S\160m{\179\227\240\ESC\194P-I" }
+          }
+      barM  `shouldBe` Db.OutputMigration
+        { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:27.00000 |]
+        , Db.omHash = Binary
+          { fromBinary = "\ETX\225\155\215\184\144\147\DLEn\SO\195\175\&4\167\208~-\244S\146\&9\215K\223i\173\EOT\209A'Z7" }
+          }
+      quuxM `shouldBe` Db.OutputMigration
+        { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:32.00000 |]
+        , Db.omHash = Binary
+          { fromBinary = "\DLE*\221\")\SO\204\207\EMdmn\b\197\233a\212-NA\133;\255\167/\t\133\139\163\222Tz" }
+          }
 
     it "reapplying does nothing" $ \options -> do
       (apply [] options . (</> "data") =<< getDataDir) `shouldReturn` []

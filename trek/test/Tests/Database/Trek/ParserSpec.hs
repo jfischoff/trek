@@ -44,3 +44,6 @@ spec = describe "Database.Trek.Parser" $ do
           mempty
           mempty
           "/path/to/migrations"
+  it "parses list" $
+    withArgs ["list"] $
+      getRecord "trek" `shouldReturn` List mempty
