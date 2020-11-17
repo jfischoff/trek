@@ -122,10 +122,11 @@ makeInputMigration filePath = do
   let useTransaction = parseUseTransaction filePath
 
   theQuery <- readFile filePath
+
   let inputAction  = void $ T.execute_ $ fromString theQuery
       inputHash    = computeHash theQuery
 
-  pure (useTransaction, Db.InputMigration {..})
+  seq (length theQuery) $ pure (useTransaction, Db.InputMigration {..})
 
 newtype OutputMigration = OutputMigration Db.OutputMigration
 
@@ -190,4 +191,5 @@ groupBy' xs = groupBy ((==) `on` fst) xs <&> \ys ->
   )
 
 list :: P.Options -> IO [OutputGroup]
-list options = fmap (map OutputGroup) $ withOptions options $ \conn -> T.runDBT Db.listApplications Psql.ReadCommitted conn
+list options = fmap (map OutputGroup) $
+  withOptions options $ \conn -> T.runDBT Db.listApplications Psql.ReadCommitted conn
