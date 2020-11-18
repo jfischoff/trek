@@ -1,6 +1,10 @@
 [![Travis CI Status](https://travis-ci.org/jfischoff/trek.svg?branch=master)](http://travis-ci.org/jfischoff/trek)
 
-`trek` is a simple database migrator. It has two commands: `create` and `apply`.
+`trek` is a simple database migrator. It has the commands: 
+- `create` 
+- `apply`
+- `list`
+- `set-migrated`
 
 ## `trek create`
 
