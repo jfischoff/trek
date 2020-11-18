@@ -39,6 +39,7 @@ import Database.PostgreSQL.Simple.Types
 import Data.Time.Clock.POSIX
 import qualified Data.ByteString.Char8 as BSC
 import Data.Function
+import Data.Text (Text)
 
 type Version = UTCTime
 
@@ -50,10 +51,11 @@ data InputMigration = InputMigration
   { inputAction  :: DB ()
   , inputVersion :: Version
   , inputHash    :: Binary Hash
+  , inputName    :: Text
   }
 
 instance Psql.ToRow InputMigration where
-  toRow InputMigration {..} = [Psql.toField inputVersion, Psql.toField inputHash]
+  toRow InputMigration {..} = [Psql.toField inputVersion, Psql.toField inputHash, Psql.toField inputName]
 
 newtype GroupId = GroupId (Binary ByteString)
     deriving stock (Show, Eq, Ord, Generic)
@@ -66,6 +68,7 @@ instance Psql.FromRow GroupId where
 data OutputMigration = OutputMigration
   { omVersion :: Version
   , omHash    :: Binary Hash
+  , omName    :: Text
   } deriving stock (Eq, Show, Ord, Generic)
     deriving anyclass (Psql.FromRow)
 
@@ -142,11 +145,13 @@ setup = withoutSetup $ void $ execute_ [sql|
   , hash bytea NOT NULL
   , application_id bytea NOT NULL REFERENCES meta.applications ON DELETE CASCADE
   , rowOrder SERIAL NOT NULL
+  , name text NOT NULL
   );
 
   CREATE INDEX ON meta.actions (hash);
   CREATE INDEX ON meta.actions (application_id);
   CREATE INDEX ON meta.actions (rowOrder);
+  CREATE INDEX ON meta.actions (name);
 
   |]
 
@@ -183,7 +188,7 @@ differenceMigrationsByVersion migrations appliedVersions =
 getOutputGroup :: GroupId -> DB OutputGroup
 getOutputGroup groupId = do
   outputMigrations <- NonEmpty.fromList <$> query [sql|
-    SELECT version, hash
+    SELECT version, hash, name
     FROM meta.actions
     WHERE application_id = ?
     ORDER BY rowOrder ASC
@@ -261,7 +266,7 @@ insertMigration :: GroupId -> InputMigration -> DB ()
 insertMigration groupId migration = void $ execute
   [sql|
     INSERT INTO meta.actions
-    (version, hash, application_id)
+    (version, hash, name, application_id)
     VALUES
-    (?, ?, ?)
+    (?, ?, ?, ?)
   |] (migration Psql.:. groupId)
