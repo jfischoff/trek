@@ -159,17 +159,20 @@ filterRange start end migrations =
       endCondition   = maybe (const True) (>=) end
   in filter (\(_, x) -> startCondition (Db.inputVersion x) && endCondition (Db.inputVersion x)) migrations
 
+buildMigrations :: FilePath -> IO [(InTransaction, Db.InputMigration)]
+buildMigrations dirPath
+  = mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
+  =<< listDirectory dirPath
+
 setMigrated :: [(InTransaction, Db.InputMigration)] -> P.Options -> Maybe UTCTime -> Maybe UTCTime -> FilePath -> IO [OutputGroup]
 setMigrated extraMigrations options start end dirPath = do
-  xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
-    =<< listDirectory dirPath
+  xs <- buildMigrations dirPath
 
   applyWith Db.SetMigrate (filterRange start end $ extraMigrations <> xs) options
 
 apply :: [(InTransaction, Db.InputMigration)] -> P.Options -> FilePath -> IO [OutputGroup]
 apply extraMigrations options dirPath = do
-  xs <- mapM (makeInputMigration . (dirPath </>)) . filter ((==".sql") . takeExtension)
-    =<< listDirectory dirPath
+  xs <- buildMigrations dirPath
   applyWith Db.RunMigrations (extraMigrations <> xs) options
 
 applyWith :: Db.ApplyType -> [(InTransaction, Db.InputMigration)] -> P.Options -> IO [OutputGroup]
