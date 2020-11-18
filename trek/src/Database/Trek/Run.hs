@@ -32,6 +32,7 @@ import Data.List.Split
 import Data.Maybe
 import Data.Aeson.Encode.Pretty
 import Data.Monoid
+import qualified Data.Text as T
 
 data Errors = CouldNotParseMigration FilePath
             | DirectoryDoesNotExist FilePath
@@ -125,6 +126,7 @@ makeInputMigration filePath = do
 
   let inputAction  = void $ T.execute_ $ fromString theQuery
       inputHash    = computeHash theQuery
+      inputName    = T.pack $ takeBaseName filePath
 
   seq (length theQuery) $ pure (useTransaction, Db.InputMigration {..})
 
@@ -134,6 +136,7 @@ instance ToJSON OutputMigration where
   toJSON (OutputMigration (Db.OutputMigration {..})) = object
     [ "version" .= omVersion
     , "hash"    .= binaryToJSON omHash
+    , "name"    .= omName
     ]
 
 newtype OutputGroup = OutputGroup Db.OutputGroup

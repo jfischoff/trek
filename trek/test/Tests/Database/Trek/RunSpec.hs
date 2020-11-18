@@ -129,17 +129,20 @@ spec = do
         { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
         , Db.omHash = Binary
           { fromBinary = "L\DLE\137\195\169\&0\163o!I\189\253`\250\203\147\215\200\224\137S\160m{\179\227\240\ESC\194P-I" }
-          }
+        , Db.omName = "2020-07-12T06-21-21_foo"
+        }
       barM  `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:27.00000 |]
         , Db.omHash = Binary
           { fromBinary = "\ETX\225\155\215\184\144\147\DLEn\SO\195\175\&4\167\208~-\244S\146\&9\215K\223i\173\EOT\209A'Z7" }
-          }
+        , Db.omName = "2020-07-12T06-21-27_bar"
+        }
       quuxM `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:32.00000 |]
         , Db.omHash = Binary
           { fromBinary = "\DLE*\221\")\SO\204\207\EMdmn\b\197\233a\212-NA\133;\255\167/\t\133\139\163\222Tz" }
-          }
+        , Db.omName = "2020-07-12T06-21-32_quux"
+        }
 
       withOptions options checkTables `shouldReturn` ["bar", "foo", "quux"]
 
@@ -150,17 +153,20 @@ spec = do
         { Db.omVersion = [utcIso8601ms|2020-07-12T06:21:21.00000|]
         , Db.omHash = Binary
           { fromBinary = "L\DLE\137\195\169\&0\163o!I\189\253`\250\203\147\215\200\224\137S\160m{\179\227\240\ESC\194P-I" }
-          }
+        , Db.omName = "2020-07-12T06-21-21_foo"
+        }
       barM  `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:27.00000 |]
         , Db.omHash = Binary
           { fromBinary = "\ETX\225\155\215\184\144\147\DLEn\SO\195\175\&4\167\208~-\244S\146\&9\215K\223i\173\EOT\209A'Z7" }
-          }
+        , Db.omName = "2020-07-12T06-21-27_bar"
+        }
       quuxM `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:32.00000 |]
         , Db.omHash = Binary
           { fromBinary = "\DLE*\221\")\SO\204\207\EMdmn\b\197\233a\212-NA\133;\255\167/\t\133\139\163\222Tz" }
-          }
+        , Db.omName = "2020-07-12T06-21-32_quux"
+        }
 
     it "reapplying does nothing" $ \options -> do
       (apply [] options . (</> "data") =<< getDataDir) `shouldReturn` []
@@ -170,11 +176,13 @@ spec = do
             { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra();"
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
             , Db.inputHash = Binary "hash"
+            , Db.inputName = "extra"
             }
       [OutputGroup (Db.OutputGroup {ogMigrations})] <- apply [(InTransaction, extraMigration)] options . (</> "data") =<< getDataDir
       ogMigrations `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:21:33.00000 |]
         , Db.omHash = Binary "hash"
+        , Db.omName = "extra"
         } :| []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
@@ -184,12 +192,14 @@ spec = do
             { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
             , Db.inputHash = Binary "hash1"
+            , Db.inputName = "extra1"
             }
       [OutputGroup (Db.OutputGroup {ogMigrations})] <- setMigrated [(InTransaction, extraMigration)] options Nothing Nothing . (</> "data")
         =<< getDataDir
       ogMigrations `shouldBe` Db.OutputMigration
         { Db.omVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
         , Db.omHash = Binary "hash1"
+        , Db.omName = "extra1"
         } :| []
 
       withOptions options checkTables `shouldReturn` ["bar", "extra", "foo", "quux"]
@@ -199,6 +209,7 @@ spec = do
             { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
             , Db.inputHash = Binary "hash1"
+            , Db.inputName = "extra1"
             }
 
       (setMigrated [(InTransaction, extraMigration)] options (pure [utcIso8601ms| 2020-07-12T06:27:34.00000 |]) Nothing . (</> "data")
@@ -211,6 +222,7 @@ spec = do
             { Db.inputAction = void $ T.execute_ "CREATE TABLE test.extra1();"
             , Db.inputVersion = [utcIso8601ms| 2020-07-12T06:27:33.00000 |]
             , Db.inputHash = Binary "hash1"
+            , Db.inputName = "extra1"
             }
 
       (setMigrated [(InTransaction, extraMigration)] options Nothing (pure [utcIso8601ms| 2020-07-12T06:27:32.00000 |]) . (</> "data")
@@ -234,6 +246,7 @@ spec = do
                   Db.inputAction = void $ T.execute_ "create table test.in_transaction (id serial primary key, trans text);"
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:00.0000 |]
                 , Db.inputHash = Binary "hash_1"
+                , Db.inputName = "hash_1"
                 }
               )
             , ( InTransaction
@@ -241,6 +254,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:10.0000 |]
                 , Db.inputHash = Binary "hash_2"
+                , Db.inputName = "hash_2"
                 }
               )
             , ( InTransaction
@@ -248,6 +262,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:20.0000 |]
                 , Db.inputHash = Binary "hash_3"
+                , Db.inputName = "hash_3"
                 }
               )
             , ( NoTransaction
@@ -255,6 +270,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:30.0000 |]
                 , Db.inputHash = Binary "hash_4"
+                , Db.inputName = "hash_4"
                 }
               )
             , ( NoTransaction
@@ -262,6 +278,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:40.0000 |]
                 , Db.inputHash = Binary "hash_5"
+                , Db.inputName = "hash_5"
                 }
               )
             , ( InTransaction
@@ -269,6 +286,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:50.0000 |]
                 , Db.inputHash = Binary "hash_6"
+                , Db.inputName = "hash_6"
                 }
               )
             , ( InTransaction
@@ -276,6 +294,7 @@ spec = do
                   Db.inputAction = transactionQuery
                 , Db.inputVersion = [utcIso8601ms| 2020-11-16T00:00:60.0000 |]
                 , Db.inputHash = Binary "hash_7"
+                , Db.inputName = "hash_7"
                 }
               )
             ]

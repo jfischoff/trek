@@ -82,18 +82,19 @@ createQuux :: DB ()
 createQuux = void $ T.execute_ [sql| CREATE SCHEMA IF NOT EXISTS test; CREATE TABLE test.quux (id SERIAL PRIMARY KEY)|]
 
 foo :: InputMigration
-foo = InputMigration createFoo [utcIso8601| 2022-12-01 |] (Psql.Binary "extra")
+foo = InputMigration createFoo [utcIso8601| 2022-12-01 |] (Psql.Binary "extra") "foo"
 
 bar :: InputMigration
-bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] (Psql.Binary "migration-2025-12-01")
+bar = InputMigration createBar  [utcIso8601| 2025-12-01 |] (Psql.Binary "migration-2025-12-01") "bar"
 
 quux :: InputMigration
-quux = InputMigration createQuux [utcIso8601| 2025-12-02 |] (Psql.Binary "migration-2025-12-02")
+quux = InputMigration createQuux [utcIso8601| 2025-12-02 |] (Psql.Binary "migration-2025-12-02") "quux"
 
 toOutputMigration :: InputMigration -> OutputMigration
 toOutputMigration InputMigration {..} = OutputMigration
   { omVersion = inputVersion
   , omHash    = inputHash
+  , omName    = inputName
   }
 
 toOutput :: InputGroup -> DB OutputGroup
